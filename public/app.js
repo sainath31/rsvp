@@ -178,7 +178,7 @@ function confetti() {
     gate.classList.add('go');
     swirl.currentTime = 0;
     swirl.play().catch(() => {});
-    setTimeout(reveal, 2700);
+    setTimeout(reveal, 3000);
     setTimeout(() => gate.addEventListener('click', reveal, { once: true }), 500); // tap again to skip ahead
   };
   $('#openBtn').onclick = open;
