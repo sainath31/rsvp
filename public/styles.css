@@ -44,7 +44,8 @@ body.entrance .bg{opacity:0}
 .pic img{display:block;width:100%;border-radius:16px}
 .hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,16,32,0) 0,rgba(13,16,32,.05) 45%,rgba(13,16,32,.94) 100%)}
 .hero-text{position:absolute;left:0;right:0;bottom:0;padding:24px 24px 34px;text-align:center;animation:rise 1.4s 2.4s ease both}
-.hero-text .display{font-size:clamp(2.6rem,12vw,3.8rem);text-shadow:0 2px 24px rgba(0,0,0,.45)}
+.hero-text .display{text-wrap:balance;font-size:clamp(2.1rem,9.5vw,3.3rem);text-shadow:0 2px 24px rgba(0,0,0,.5)}
+.hero-text .hero-sub{font-size:clamp(1.3rem,6vw,1.7rem);font-style:italic;font-weight:500;color:var(--gold2);margin:.55rem 0 0;line-height:1.2}
 .hero-date{margin:.8rem 0 0;color:var(--gold2);letter-spacing:.08em;font-size:.9rem;font-weight:500}
 .content{padding:18px 16px 0;display:grid;gap:16px;margin-top:-6px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 12px 40px rgba(0,0,0,.25)}
