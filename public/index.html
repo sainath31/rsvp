@@ -58,7 +58,10 @@
         <li id="dressRow" hidden><span class="ico">&#10024;</span><div><b>Dress code</b><small id="dDress"></small></div></li>
       </ul>
       <div class="actions">
-        <a class="btn btn-ghost" href="event.ics">Add to calendar</a>
+        <a class="btn btn-ghost" id="gcal" target="_blank" rel="noopener">Google Calendar</a>
+        <a class="btn btn-ghost" href="event.ics">Apple / Outlook</a>
+      </div>
+      <div class="actions" style="margin-top:10px">
         <a class="btn btn-ghost" id="mapBtn" target="_blank" rel="noopener" hidden>Directions</a>
       </div>
     </section>
@@ -81,7 +84,9 @@
           <div class="field"><span>Children</span><div class="stepper" data-for="children"><button type="button" aria-label="Fewer children">&minus;</button><output id="childrenOut">0</output><button type="button" aria-label="More children">+</button></div></div>
         </div>
 
-        <label class="field"><span>WhatsApp number <em>(for confirmation &amp; reminders)</em></span>
+        <label class="field"><span>Email <em>(for confirmation &amp; reminders)</em></span>
+          <input name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" maxlength="120"></label>
+        <label class="field"><span>WhatsApp number <em>(optional)</em></span>
           <input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+1 555 123 4567" maxlength="30"></label>
         <label class="field"><span>Message to the hosts <em>(optional)</em></span>
           <textarea name="note" rows="2" maxlength="300" placeholder="Dietary needs, wishes&hellip;"></textarea></label>

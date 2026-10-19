@@ -20,7 +20,7 @@
     if (url === 'api/rsvp') {
       if (!body.name?.trim()) return json({ error: 'Please enter your name.' }, 400);
       const no = body.status === 'no';
-      const g = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), name: body.name.trim(), phone: body.phone || '', status: body.status, adults: no ? 0 : Math.max(1, body.adults | 0), children: no ? 0 : body.children | 0, note: body.note || '' };
+      const g = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), name: body.name.trim(), phone: body.phone || '', email: body.email || '', status: body.status, adults: no ? 0 : Math.max(1, body.adults | 0), children: no ? 0 : body.children | 0, note: body.note || '' };
       db.guests.unshift(g); save();
       return json({ ok: true, status: g.status, adults: g.adults, children: g.children });
     }

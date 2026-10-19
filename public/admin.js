@@ -33,7 +33,7 @@ function renderGuests() {
   const label = { yes: 'Attending', no: 'Declined', maybe: 'Maybe' };
   $('#list').innerHTML = rows.length ? rows.map((g) => `
     <div class="card guest"><div class="h"><div><b>${esc(g.name)}</b>
-      <div class="meta">${g.status === 'no' ? 'Not attending' : `${g.adults} adult${g.adults === 1 ? '' : 's'}${g.children ? ` &middot; ${g.children} child${g.children === 1 ? '' : 'ren'}` : ''}`}${g.phone ? ` &middot; ${esc(g.phone)}` : ''}</div></div>
+      <div class="meta">${g.status === 'no' ? 'Not attending' : `${g.adults} adult${g.adults === 1 ? '' : 's'}${g.children ? ` &middot; ${g.children} child${g.children === 1 ? '' : 'ren'}` : ''}`}${g.email ? ` &middot; ${esc(g.email)}` : ''}${g.phone ? ` &middot; ${esc(g.phone)}` : ''}</div></div>
       <span class="badge ${g.status}">${label[g.status]}</span></div>
       ${g.note ? `<div class="meta">&ldquo;${esc(g.note)}&rdquo;</div>` : ''}
       <div class="g-act">${g.waLink ? `<a class="btn btn-ghost" target="_blank" rel="noopener" href="${esc(g.waLink)}">&#128172; WhatsApp</a>` : ''}<button class="btn btn-ghost" data-del="${esc(g.id)}">Remove</button></div></div>`).join('')
@@ -57,9 +57,9 @@ async function loadEvent() {
   for (const k of ['title', 'hosts', 'venue', 'address', 'mapUrl', 'dressCode', 'rsvpDeadline', 'message', 'durationHours']) f[k].value = ev[k] ?? '';
   f.startsAt.value = toLocal(ev.startsAt);
   const n = $('#ntForm');
-  n.hostPhone.value = ev.hostPhone; n.reminderDays.value = ev.reminderDays.join(', ');
+  n.hostPhone.value = ev.hostPhone; n.hostEmail.value = ev.hostEmail || ''; n.reminderDays.value = ev.reminderDays.join(', ');
   n.confirmTemplate.value = ev.confirmTemplate; n.reminderTemplate.value = ev.reminderTemplate;
-  $('#waStatus').textContent = ev.whatsapp ? '✅ WhatsApp sending is connected.' : '⚠ WhatsApp API is not configured on the server (see README). Until then, use the one-tap WhatsApp buttons on each guest.';
+  $('#waStatus').textContent = `Email (Gmail): ${ev.email ? 'connected \u2705' : 'not configured \u26A0'}  \u00b7  WhatsApp API: ${ev.whatsapp ? 'connected \u2705' : 'not configured'}. The one-tap WhatsApp buttons on each guest always work.`;
   $('#imgPrev').style.backgroundImage = ev.imageUrl ? `url("${ev.imageUrl}")` : ''; $('#imgPrev').textContent = ev.imageUrl ? '' : 'No picture yet';
   $('#musPrev').innerHTML = ev.musicUrl ? `<audio controls src="${esc(ev.musicUrl)}"></audio>` : 'Built-in melody';
 }
@@ -72,7 +72,7 @@ $('#evForm').onsubmit = async (e) => {
 };
 $('#ntForm').onsubmit = async (e) => {
   e.preventDefault(); const f = e.target;
-  const body = { hostPhone: f.hostPhone.value, confirmTemplate: f.confirmTemplate.value, reminderTemplate: f.reminderTemplate.value,
+  const body = { hostPhone: f.hostPhone.value, hostEmail: f.hostEmail.value, confirmTemplate: f.confirmTemplate.value, reminderTemplate: f.reminderTemplate.value,
     reminderDays: f.reminderDays.value.split(/[,\s]+/).filter(Boolean).map(Number) };
   try { await api('api/admin/event', { method: 'PUT', body: JSON.stringify(body) }); toast('Saved ✓'); loadEvent(); } catch (x) { toast(x.message); }
 };

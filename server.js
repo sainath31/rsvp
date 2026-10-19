@@ -6,7 +6,9 @@ import express from 'express';
 import multer from 'multer';
 import { getDb, save, UPLOAD_DIR } from './lib/store.js';
 import { sendWhatsApp, isConfigured, normalizePhone } from './lib/whatsapp.js';
-import { render, fmtDate } from './lib/messages.js';
+import { sendMail, isMailConfigured, validEmail } from './lib/mail.js';
+import { notifyGuest, channelsConfigured } from './lib/notify.js';
+import { render, fmtDate, buildIcs, googleCalUrl } from './lib/messages.js';
 import { remindGuest, startScheduler } from './lib/reminders.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -96,37 +98,33 @@ app.post('/api/rsvp', async (req, res) => {
   const phone = normalizePhone(phoneRaw);
   if (phoneRaw && !phone) return res.status(400).json({ error: 'Please enter a valid WhatsApp number with country code.' });
 
+  const email = clean(b.email, 120).toLowerCase();
+  if (email && !validEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
+
   const db = getDb();
   // Same person re-submitting (same phone, or same name without phone) updates their RSVP.
-  let guest = db.guests.find((g) => (phone && g.phone === phone) || (!phone && !g.phone && g.name.toLowerCase() === name.toLowerCase()));
+  let guest = db.guests.find((g) => (phone && g.phone === phone) || (email && g.email === email) || (!phone && !email && !g.phone && !g.email && g.name.toLowerCase() === name.toLowerCase()));
   const isNew = !guest;
   if (isNew) { guest = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), reminders: {} }; db.guests.push(guest); }
-  Object.assign(guest, { name, phone, status, adults, children, note: clean(b.note, 300), updatedAt: new Date().toISOString() });
+  Object.assign(guest, { name, phone, email, status, adults, children, note: clean(b.note, 300), updatedAt: new Date().toISOString() });
   await save();
 
   const link = baseUrl(req);
   const label = { yes: 'attending', no: 'not attending', maybe: 'maybe' }[status];
   // Fire-and-forget notifications; failures never block the guest.
+  const summary = `New RSVP: ${name} \u2013 ${label}${status !== 'no' ? ` (${adults} adult${adults === 1 ? '' : 's'}, ${children} child${children === 1 ? '' : 'ren'})` : ''}${guest.note ? `\nNote: ${guest.note}` : ''}`;
   const host = normalizePhone(db.event.hostPhone);
-  if (host) {
-    sendWhatsApp(host, `📬 New RSVP: ${name} – ${label}${status !== 'no' ? ` (${adults} adult${adults === 1 ? '' : 's'}, ${children} child${children === 1 ? '' : 'ren'})` : ''}${guest.note ? `\nNote: ${guest.note}` : ''}`).then((r) => !r.ok && console.warn('[host notify]', r.error));
-  }
-  if (phone) {
-    sendWhatsApp(phone, render(db.event.confirmTemplate, db.event, guest, link)).then((r) => !r.ok && console.warn('[confirm]', r.error));
-  }
+  if (host) sendWhatsApp(host, '\uD83D\uDCEC ' + summary).then((r) => !r.ok && console.warn('[host wa]', r.error));
+  const hostEmail = db.event.hostEmail || process.env.GMAIL_USER;
+  if (hostEmail) sendMail(hostEmail, `RSVP: ${name} \u2013 ${label}`, summary, link + '/admin').then((r) => !r.ok && console.warn('[host mail]', r.error));
+  if (phone || email) notifyGuest(guest, `Your RSVP: ${db.event.title}`, render(db.event.confirmTemplate, db.event, guest, link) + (status !== 'no' ? `\n\nAdd to calendar: ${googleCalUrl(db.event)}` : ''), link, status !== 'no' ? [{ filename: 'invitation.ics', content: buildIcs(db.event), contentType: 'text/calendar' }] : undefined).then((r) => !r.ok && console.warn('[confirm]', r.error));
   res.json({ ok: true, updated: !isNew, status, adults, children });
 });
 
 app.get('/event.ics', (req, res) => {
-  const ev = getDb().event;
-  const f = (d) => new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-  const esc = (s) => String(s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
-  const end = new Date(new Date(ev.startsAt).getTime() + (ev.durationHours || 3) * 36e5);
-  res.type('text/calendar').set('Content-Disposition', 'attachment; filename="invitation.ics"').send(
-    ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//RSVP//EN', 'BEGIN:VEVENT', `UID:${crypto.createHash('md5').update(ev.startsAt + ev.title).digest('hex')}@rsvp`,
-      `DTSTAMP:${f(new Date())}`, `DTSTART:${f(ev.startsAt)}`, `DTEND:${f(end)}`, `SUMMARY:${esc(ev.title)}`,
-      `LOCATION:${esc(`${ev.venue}, ${ev.address}`)}`, `DESCRIPTION:${esc(ev.message)}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n'));
+  res.type('text/calendar').set('Content-Disposition', 'attachment; filename="invitation.ics"').send(buildIcs(getDb().event));
 });
+app.get('/api/calendar', (req, res) => res.json({ google: googleCalUrl(getDb().event) }));
 
 app.use('/media', express.static(UPLOAD_DIR, { maxAge: '1h', index: false, setHeaders: (r) => r.set('Content-Disposition', 'inline') }));
 
@@ -134,7 +132,7 @@ app.use('/media', express.static(UPLOAD_DIR, { maxAge: '1h', index: false, setHe
 app.put('/api/admin/event', requireAdmin, async (req, res) => {
   const b = req.body || {};
   const ev = getDb().event;
-  const str = { title: 120, hosts: 120, venue: 120, address: 200, mapUrl: 400, message: 1000, dressCode: 120, rsvpDeadline: 40, tz: 60, confirmTemplate: 600, reminderTemplate: 600 };
+  const str = { title: 120, hosts: 120, venue: 120, address: 200, mapUrl: 400, message: 1000, dressCode: 120, rsvpDeadline: 40, tz: 60, hostEmail: 120, confirmTemplate: 600, reminderTemplate: 600 };
   for (const [k, max] of Object.entries(str)) if (k in b) ev[k] = clean(k.endsWith('Template') || k === 'message' ? String(b[k]).replace(/\r/g, '') : b[k], max) || (k.endsWith('Template') ? ev[k] : '');
   if (b.startsAt && !isNaN(new Date(b.startsAt))) ev.startsAt = new Date(b.startsAt).toISOString();
   if ('hostPhone' in b) { ev.hostPhone = normalizePhone(b.hostPhone); }
@@ -176,7 +174,7 @@ app.delete('/api/admin/upload/:kind', requireAdmin, async (req, res) => {
 });
 
 /* ---------- admin: guests (host-only) ---------- */
-app.get('/api/admin/event', requireAdmin, (req, res) => res.json({ ...getDb().event, imageUrl: getDb().event.image ? `/media/${getDb().event.image}` : '', musicUrl: getDb().event.music ? `/media/${getDb().event.music}` : '', link: baseUrl(req), whatsapp: isConfigured() }));
+app.get('/api/admin/event', requireAdmin, (req, res) => res.json({ ...getDb().event, imageUrl: getDb().event.image ? `/media/${getDb().event.image}` : '', musicUrl: getDb().event.music ? `/media/${getDb().event.music}` : '', link: baseUrl(req), whatsapp: isConfigured(), email: isMailConfigured() }));
 app.get('/api/admin/guests', requireAdmin, (req, res) => {
   const ev = getDb().event;
   const guests = [...getDb().guests].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((g) => ({
@@ -192,13 +190,13 @@ app.delete('/api/admin/guests/:id', requireAdmin, async (req, res) => {
 });
 app.get('/api/admin/guests.csv', requireAdmin, (req, res) => {
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""').replace(/^([=+\-@])/, "'$1")}"`;
-  const rows = [['Name', 'Phone', 'Status', 'Adults', 'Children', 'Note', 'RSVP date'], ...getDb().guests.map((g) => [g.name, g.phone, g.status, g.adults, g.children, g.note, g.createdAt])];
+  const rows = [['Name', 'Phone', 'Email', 'Status', 'Adults', 'Children', 'Note', 'RSVP date'], ...getDb().guests.map((g) => [g.name, g.phone, g.email, g.status, g.adults, g.children, g.note, g.createdAt])];
   res.type('text/csv').set('Content-Disposition', 'attachment; filename="guests.csv"').send(rows.map((r) => r.map(q).join(',')).join('\n'));
 });
 app.post('/api/admin/remind', requireAdmin, async (req, res) => {
-  if (!isConfigured()) return res.status(400).json({ error: 'WhatsApp is not configured on the server.' });
+  if (!channelsConfigured()) return res.status(400).json({ error: 'Neither email nor WhatsApp is configured on the server.' });
   const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
-  const targets = getDb().guests.filter((g) => g.phone && g.status !== 'no' && (!ids || ids.includes(g.id)));
+  const targets = getDb().guests.filter((g) => (g.phone || g.email) && g.status !== 'no' && (!ids || ids.includes(g.id)));
   let sent = 0; const failed = [];
   for (const g of targets) {
     const r = await remindGuest(g, baseUrl(req));
@@ -222,6 +220,6 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`RSVP running on http://localhost:${PORT}  (admin: /admin)`);
-  console.log(`WhatsApp: ${isConfigured() ? 'enabled' : 'not configured (click-to-chat fallback only)'}`);
+  console.log(`WhatsApp: ${isConfigured() ? 'enabled' : 'not configured'} | Email: ${isMailConfigured() ? 'enabled' : 'not configured'}`);
   startScheduler(process.env.PUBLIC_URL || `http://localhost:${PORT}`);
 });

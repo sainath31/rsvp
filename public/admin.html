@@ -65,7 +65,7 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
   <nav class="tabs">
     <button data-tab="guests" class="on"><i>&#128101;</i>Guests</button>
     <button data-tab="event"><i>&#127881;</i>Event</button>
-    <button data-tab="notify"><i>&#128172;</i>WhatsApp</button>
+    <button data-tab="notify"><i>&#128172;</i>Notify</button>
   </nav>
 
   <section class="panel on" id="p-guests">
@@ -108,8 +108,9 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
 
   <section class="panel" id="p-notify">
     <form id="ntForm" class="card">
-      <h2 class="display sm">WhatsApp</h2>
+      <h2 class="display sm">Notifications</h2>
       <p class="note" id="waStatus"></p>
+      <label class="field"><span>Your email <em>(get an email for every RSVP; defaults to the Gmail sender)</em></span><input name="hostEmail" type="email"></label>
       <label class="field"><span>Your WhatsApp number <em>(get a ping for every RSVP)</em></span><input name="hostPhone" type="tel" placeholder="+1 555 123 4567"></label>
       <label class="field"><span>Send reminders this many days before <em>(comma separated)</em></span><input name="reminderDays" placeholder="7, 1"></label>
       <label class="field"><span>Confirmation message</span><textarea name="confirmTemplate" rows="3"></textarea></label>
@@ -117,7 +118,7 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
       <p class="note">Placeholders: {name} {event} {status} {date} {venue} {when} {link}</p>
       <button class="btn btn-gold btn-block">Save</button>
       <div class="actions"><button type="button" class="btn btn-ghost" id="testWa">Send test to me</button><button type="button" class="btn btn-ghost" id="remindAll">Remind all now</button></div>
-      <p class="note">Reminders go out automatically to everyone who said yes/maybe and gave a number. You can also message any guest from the Guests tab with one tap.</p>
+      <p class="note">Reminders go out automatically by email (and WhatsApp if set up) to everyone who said yes/maybe. You can also message any guest from the Guests tab with one tap.</p>
     </form>
   </section>
 </div>

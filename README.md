@@ -12,7 +12,12 @@ npm start              # http://localhost:3000, host dashboard at /admin
 ```
 The guest list is only returned by authenticated `/api/admin/*` routes.
 
-## WhatsApp
+## Email (Gmail, free)
+Turn on 2-Step Verification for your Google account, create an **App password**, then set `GMAIL_USER` and
+`GMAIL_APP_PASSWORD`. Guests get a confirmation email (with a calendar invite attached), you get one per RSVP,
+and reminders are emailed automatically (7 and 1 days before by default). Personal Gmail allows ~500 emails/day.
+
+## WhatsApp (optional)
 Set the `TWILIO_*` variables (Twilio WhatsApp API). Without them, each guest in the dashboard has a one-tap
 click-to-chat button. Note: WhatsApp only allows business-initiated messages outside a 24h window via an
 approved template (`TWILIO_CONTENT_SID`, body `{{1}}`).

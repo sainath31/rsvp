@@ -79,6 +79,8 @@ function render() {
   const map = ev.mapUrl || (ev.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue + ' ' + ev.address)}` : '');
   if (map) { $('#mapBtn').href = map; $('#mapBtn').hidden = false; }
   if (ev.rsvpDeadline) $('#deadline').textContent = `Kindly reply by ${new Date(ev.rsvpDeadline + 'T12:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
+  const e = new Date(new Date(ev.startsAt).getTime() + 36e5 * 3), z = (d) => new Date(d).toISOString().replace(/[-:]|\.\d+/g, '');
+  $('#gcal').href = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(ev.startsAt)}/${z(e)}`, details: ev.message, location: `${ev.venue}, ${ev.address}` });
   if (ev.image) $('#heroImg').style.backgroundImage = `url("${ev.image}")`;
   if (ev.music) { audio.src = ev.music; usingFile = true; }
   audio.volume = 0.7;
@@ -106,24 +108,24 @@ document.querySelectorAll('.stepper').forEach((el) => {
 });
 form.addEventListener('change', () => { $('#counts').hidden = form.status.value === 'no'; });
 
-try { const s = JSON.parse(localStorage.getItem('rsvp') || 'null'); if (s) { form.name.value = s.name || ''; form.phone.value = s.phone || ''; } } catch {}
+try { const s = JSON.parse(localStorage.getItem('rsvp') || 'null'); if (s) { form.name.value = s.name || ''; form.phone.value = s.phone || ''; form.email.value = s.email || ''; } } catch {}
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const err = $('#err'), btn = $('#submit');
   err.hidden = true;
   if (!form.name.value.trim()) { err.textContent = 'Please enter your name.'; err.hidden = false; form.name.focus(); return; }
-  const body = { name: form.name.value, phone: form.phone.value, note: form.note.value, status: form.status.value, adults: counts.adults, children: counts.children };
+  const body = { name: form.name.value, phone: form.phone.value, email: form.email.value, note: form.note.value, status: form.status.value, adults: counts.adults, children: counts.children };
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
     const res = await fetch('api/rsvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await res.json();
     if (!res.ok) throw new Error(j.error || 'Something went wrong');
-    try { localStorage.setItem('rsvp', JSON.stringify({ name: body.name, phone: body.phone })); } catch {}
+    try { localStorage.setItem('rsvp', JSON.stringify({ name: body.name, phone: body.phone, email: body.email })); } catch {}
     const first = body.name.trim().split(/\s+/)[0];
     $('#doneTitle').textContent = body.status === 'no' ? `We'll miss you, ${first}` : `See you there, ${first}!`;
     $('#doneText').textContent = body.status === 'no' ? 'Thank you for letting us know.'
-      : `We've got ${j.adults} adult${j.adults === 1 ? '' : 's'}${j.children ? ` and ${j.children} child${j.children === 1 ? '' : 'ren'}` : ''} down.` + (body.phone ? ' A WhatsApp confirmation is on its way, and we’ll remind you as the day gets closer.' : '');
+      : `We've got ${j.adults} adult${j.adults === 1 ? '' : 's'}${j.children ? ` and ${j.children} child${j.children === 1 ? '' : 'ren'}` : ''} down.` + ((body.phone || body.email) ? ' A confirmation is on its way, and we’ll remind you as the day gets closer.' : '');
     form.hidden = true; $('#done').hidden = false; $('#rsvp h2').hidden = true; $('#deadline').hidden = true;
     if (body.status !== 'no') confetti();
   } catch (x) { err.textContent = x.message; err.hidden = false; }
