@@ -1,0 +1,164 @@
+const $ = (s) => document.querySelector(s);
+let ev;
+
+/* ---------- music: uploaded track, or a soft built-in synth melody ---------- */
+const audio = $('#audio');
+let ctx, synthTimer, muted = false, playing = false, usingFile = false;
+
+function startSynth() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  ctx ||= new AC();
+  ctx.resume();
+  const master = ctx.createGain(); master.gain.value = 0.16; master.connect(ctx.destination);
+  const delay = ctx.createDelay(); delay.delayTime.value = 0.38;
+  const fb = ctx.createGain(); fb.gain.value = 0.38;
+  delay.connect(fb); fb.connect(delay); delay.connect(master);
+  ctx.master = master;
+  const chords = [[261.63, 329.63, 392], [220, 261.63, 329.63], [174.61, 220, 261.63], [196, 246.94, 293.66]];
+  const step = 0.42; let t = ctx.currentTime + 0.1, n = 0;
+  const note = (f, at, dur, vol) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(vol, at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0008, at + dur);
+    o.connect(g); g.connect(master); g.connect(delay); o.start(at); o.stop(at + dur + 0.05);
+  };
+  const schedule = () => {
+    while (t < ctx.currentTime + 1.5) {
+      const bar = Math.floor(n / 8) % chords.length, ch = chords[bar], i = n % 8;
+      if (i === 0) note(ch[0] / 2, t, 3.2, 0.55);
+      const seq = [0, 1, 2, 1, 2, 1, 0, 1][i];
+      note(ch[seq] * (i === 4 ? 2 : 1), t, 1.4, 0.4);
+      t += step; n++;
+    }
+  };
+  schedule(); synthTimer = setInterval(schedule, 400);
+}
+function stopSynth() { clearInterval(synthTimer); synthTimer = null; if (ctx) ctx.suspend(); }
+
+async function playMusic() {
+  if (muted) return;
+  try {
+    if (usingFile) { await audio.play(); }
+    else if (!synthTimer) startSynth();
+    else ctx.resume();
+    playing = true;
+  } catch { playing = false; }
+  syncMute();
+}
+function pauseMusic() { usingFile ? audio.pause() : stopSynth(); playing = false; syncMute(); }
+function syncMute() {
+  const b = $('#mute');
+  b.classList.toggle('off', muted);
+  b.classList.toggle('on', playing && !muted);
+}
+$('#mute').onclick = () => { muted = !muted; muted ? pauseMusic() : playMusic(); };
+let resume = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && playing) { resume = true; pauseMusic(); }
+  else if (!document.hidden && resume && !muted) { resume = false; playMusic(); }
+});
+
+/* ---------- render event ---------- */
+const fmt = (o) => new Intl.DateTimeFormat('en-US', { timeZone: ev.tz, ...o }).format(new Date(ev.startsAt));
+
+function render() {
+  document.title = `${ev.title} – ${ev.hosts}`;
+  $('#gateTitle').textContent = ev.title;
+  $('#gateHosts').textContent = `from ${ev.hosts}`;
+  $('#title').textContent = ev.title;
+  $('#hosts').textContent = ev.hosts;
+  $('#message').textContent = ev.message;
+  $('#heroDate').textContent = fmt({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+  $('#dDate').textContent = fmt({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  $('#dTime').textContent = fmt({ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+  $('#dVenue').textContent = ev.venue;
+  $('#dAddr').textContent = ev.address;
+  if (ev.dressCode) { $('#dDress').textContent = ev.dressCode; $('#dressRow').hidden = false; }
+  const map = ev.mapUrl || (ev.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue + ' ' + ev.address)}` : '');
+  if (map) { $('#mapBtn').href = map; $('#mapBtn').hidden = false; }
+  if (ev.rsvpDeadline) $('#deadline').textContent = `Kindly reply by ${new Date(ev.rsvpDeadline + 'T12:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
+  if (ev.image) $('#heroImg').style.backgroundImage = `url("${ev.image}")`;
+  if (ev.music) { audio.src = ev.music; usingFile = true; }
+  audio.volume = 0.7;
+}
+
+function tick() {
+  const ms = new Date(ev.startsAt) - Date.now();
+  const cd = $('#countdown');
+  if (ms <= 0) { cd.hidden = true; return; }
+  const s = Math.floor(ms / 1000);
+  $('#cd-d').textContent = Math.floor(s / 86400);
+  $('#cd-h').textContent = Math.floor(s % 86400 / 3600);
+  $('#cd-m').textContent = Math.floor(s % 3600 / 60);
+  $('#cd-s').textContent = s % 60;
+}
+
+/* ---------- RSVP form ---------- */
+const form = $('#form');
+const counts = { adults: 1, children: 0 };
+document.querySelectorAll('.stepper').forEach((el) => {
+  const key = el.dataset.for, [minus, plus] = el.querySelectorAll('button');
+  const set = (v) => { counts[key] = Math.max(key === 'adults' ? 1 : 0, Math.min(20, v)); $('#' + key + 'Out').textContent = counts[key]; };
+  minus.onclick = () => set(counts[key] - 1);
+  plus.onclick = () => set(counts[key] + 1);
+});
+form.addEventListener('change', () => { $('#counts').hidden = form.status.value === 'no'; });
+
+try { const s = JSON.parse(localStorage.getItem('rsvp') || 'null'); if (s) { form.name.value = s.name || ''; form.phone.value = s.phone || ''; } } catch {}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('#err'), btn = $('#submit');
+  err.hidden = true;
+  if (!form.name.value.trim()) { err.textContent = 'Please enter your name.'; err.hidden = false; form.name.focus(); return; }
+  const body = { name: form.name.value, phone: form.phone.value, note: form.note.value, status: form.status.value, adults: counts.adults, children: counts.children };
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const res = await fetch('api/rsvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error || 'Something went wrong');
+    try { localStorage.setItem('rsvp', JSON.stringify({ name: body.name, phone: body.phone })); } catch {}
+    const first = body.name.trim().split(/\s+/)[0];
+    $('#doneTitle').textContent = body.status === 'no' ? `We'll miss you, ${first}` : `See you there, ${first}!`;
+    $('#doneText').textContent = body.status === 'no' ? 'Thank you for letting us know.'
+      : `We've got ${j.adults} adult${j.adults === 1 ? '' : 's'}${j.children ? ` and ${j.children} child${j.children === 1 ? '' : 'ren'}` : ''} down.` + (body.phone ? ' A WhatsApp confirmation is on its way, and we’ll remind you as the day gets closer.' : '');
+    form.hidden = true; $('#done').hidden = false; $('#rsvp h2').hidden = true; $('#deadline').hidden = true;
+    if (body.status !== 'no') confetti();
+  } catch (x) { err.textContent = x.message; err.hidden = false; }
+  btn.disabled = false; btn.textContent = 'Send RSVP';
+});
+$('#editAgain').onclick = () => { form.hidden = false; $('#done').hidden = true; $('#rsvp h2').hidden = false; $('#deadline').hidden = false; };
+
+function confetti() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c = Object.assign(document.createElement('canvas'), { width: innerWidth, height: innerHeight });
+  Object.assign(c.style, { position: 'fixed', inset: 0, zIndex: 60, pointerEvents: 'none' });
+  document.body.append(c);
+  const g = c.getContext('2d'), colors = ['#d9b573', '#f1d9a3', '#8a6cf0', '#fff', '#5aa9ff'];
+  const ps = Array.from({ length: 110 }, () => ({ x: innerWidth / 2, y: innerHeight * .6, vx: (Math.random() - .5) * 14, vy: -Math.random() * 14 - 4, s: 4 + Math.random() * 5, c: colors[Math.random() * 5 | 0], r: Math.random() * 6 }));
+  let f = 0;
+  (function loop() {
+    g.clearRect(0, 0, c.width, c.height);
+    ps.forEach((p) => { p.vy += .35; p.x += p.vx; p.y += p.vy; p.r += .2; g.fillStyle = p.c; g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * .6); g.restore(); });
+    if (++f < 130) requestAnimationFrame(loop); else c.remove();
+  })();
+}
+
+/* ---------- boot ---------- */
+(async () => {
+  try {
+    ev = await (await fetch('api/event')).json();
+  } catch { document.body.innerHTML = '<p style="padding:2rem">Unable to load the invitation. Please refresh.</p>'; return; }
+  render(); tick(); setInterval(tick, 1000);
+  $('#mute').hidden = false;
+  // Browsers only allow sound after a gesture; try silently first, the gate tap guarantees it.
+  if (usingFile) audio.play().then(() => { playing = true; syncMute(); }).catch(() => {});
+  const open = () => {
+    $('#gate').classList.add('out'); $('#app').hidden = false;
+    setTimeout(() => $('#gate').remove(), 800);
+    playMusic();
+  };
+  $('#openBtn').onclick = open;
+})();

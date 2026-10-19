@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1020">
+<meta name="robots" content="noindex">
+<title>Host Dashboard</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+body{padding-bottom:calc(84px + var(--safe-b))}
+.wrap{max-width:720px;margin:0 auto;padding:calc(20px + var(--safe-t)) 16px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.top h1{font-size:1.7rem}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{padding:14px 8px;text-align:center}
+.stat b{display:block;font:600 1.9rem/1 'Cormorant Garamond',serif;color:var(--gold2)}
+.stat span{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;gap:6px;padding:8px 12px calc(8px + var(--safe-b));background:rgba(13,16,32,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--line)}
+.tabs button{flex:1;max-width:200px;border:0;background:none;color:var(--muted);padding:8px;border-radius:14px;font:500 .78rem Inter;cursor:pointer;display:grid;gap:2px;justify-items:center}
+.tabs button i{font-style:normal;font-size:1.3rem}
+.tabs button.on{color:var(--gold2);background:rgba(217,181,115,.12)}
+.guest{padding:16px;margin-bottom:10px}
+.guest .h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.guest b{font-size:1.05rem}
+.badge{font-size:.7rem;padding:3px 10px;border-radius:99px;font-weight:600;white-space:nowrap}
+.yes{background:rgba(90,200,140,.16);color:#7ee0a8}.no{background:rgba(255,120,120,.14);color:#ff9a9a}.maybe{background:rgba(255,200,90,.14);color:#ffd27a}
+.meta{color:var(--muted);font-size:.88rem;margin-top:6px}
+.g-act{display:flex;gap:8px;margin-top:12px}
+.g-act .btn{padding:.55rem 1rem;min-height:40px;font-size:.85rem}
+.filters{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:4px}
+.filters button{white-space:nowrap;border:1px solid var(--line);background:none;color:var(--muted);padding:7px 14px;border-radius:99px;font:500 .85rem Inter;cursor:pointer}
+.filters button.on{border-color:var(--gold);color:var(--gold2)}
+.panel{display:none}.panel.on{display:block;animation:rise .4s ease both}
+.preview{width:100%;aspect-ratio:4/3;border-radius:16px;background:#1b2040 center/cover;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted);margin:8px 0}
+.preview audio{width:90%}
+.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translateX(-50%);background:#fff;color:#111;padding:10px 18px;border-radius:99px;font-weight:500;z-index:80;box-shadow:0 8px 30px rgba(0,0,0,.4);max-width:90vw}
+.login{min-height:100dvh;display:grid;place-items:center;padding:20px}
+.login .card{width:100%;max-width:360px}
+h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
+.note{font-size:.85rem;color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:32px 0}
+@media(min-width:900px){.tabs{position:static;background:none;border:0;margin-bottom:14px;padding:0}.tabs button{flex-direction:row;justify-content:center;max-width:none}body{padding-bottom:20px}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<div id="login" class="login" hidden>
+  <form class="card" id="loginForm">
+    <h1 class="display sm">Host login</h1>
+    <p class="muted">Only you can see the guest list.</p>
+    <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required autofocus></label>
+    <p class="err" id="loginErr" hidden></p>
+    <button class="btn btn-gold btn-block">Sign in</button>
+    <p class="foot"><a href="./">&larr; Back to invitation</a></p>
+  </form>
+</div>
+
+<div id="dash" class="wrap" hidden>
+  <div class="top"><h1 class="display">Dashboard</h1><div><a class="btn btn-ghost" href="./" style="padding:.5rem 1rem;min-height:40px">View</a> <button class="btn btn-ghost" id="logout" style="padding:.5rem 1rem;min-height:40px">Logout</button></div></div>
+
+  <nav class="tabs">
+    <button data-tab="guests" class="on"><i>&#128101;</i>Guests</button>
+    <button data-tab="event"><i>&#127881;</i>Event</button>
+    <button data-tab="notify"><i>&#128172;</i>WhatsApp</button>
+  </nav>
+
+  <section class="panel on" id="p-guests">
+    <div class="stats">
+      <div class="card stat"><b id="sPeople">0</b><span>Attending</span></div>
+      <div class="card stat"><b id="sAdults">0</b><span>Adults</span></div>
+      <div class="card stat"><b id="sKids">0</b><span>Children</span></div>
+    </div>
+    <div class="filters" id="filters">
+      <button data-f="all" class="on">All</button><button data-f="yes">Yes</button><button data-f="maybe">Maybe</button><button data-f="no">No</button>
+      <button id="csv" style="margin-left:auto">&#11015; CSV</button>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section class="panel" id="p-event">
+    <form id="evForm" class="card">
+      <h2 class="display sm">Invitation</h2>
+      <p class="note" style="margin:.2rem 0 0">Cover photo</p>
+      <div class="preview" id="imgPrev">No picture yet</div>
+      <div class="actions"><label class="btn btn-ghost">Upload picture<input type="file" id="imgFile" accept="image/jpeg,image/png,image/webp,image/gif" hidden></label><button type="button" class="btn btn-ghost" id="imgDel">Remove</button></div>
+
+      <p class="note" style="margin:1.2rem 0 0">Background music <span>(plays when guests open the invite; leave empty for the built-in melody)</span></p>
+      <div class="preview" id="musPrev" style="aspect-ratio:auto;padding:14px">Built-in melody</div>
+      <div class="actions"><label class="btn btn-ghost">Upload music<input type="file" id="musFile" accept="audio/*" hidden></label><button type="button" class="btn btn-ghost" id="musDel">Remove</button></div>
+
+      <label class="field"><span>Title</span><input name="title" maxlength="120"></label>
+      <label class="field"><span>Hosted by</span><input name="hosts" maxlength="120"></label>
+      <label class="field"><span>Date &amp; time</span><input type="datetime-local" name="startsAt"></label>
+      <label class="field"><span>Duration (hours)</span><input type="number" name="durationHours" min="1" max="24"></label>
+      <label class="field"><span>Venue</span><input name="venue" maxlength="120"></label>
+      <label class="field"><span>Address</span><input name="address" maxlength="200"></label>
+      <label class="field"><span>Map link <em>(optional)</em></span><input type="url" name="mapUrl" placeholder="https://maps.google.com/..."></label>
+      <label class="field"><span>Dress code <em>(optional)</em></span><input name="dressCode" maxlength="120"></label>
+      <label class="field"><span>RSVP deadline <em>(optional)</em></span><input type="date" name="rsvpDeadline"></label>
+      <label class="field"><span>Message</span><textarea name="message" rows="4" maxlength="1000"></textarea></label>
+      <button class="btn btn-gold btn-block">Save changes</button>
+    </form>
+  </section>
+
+  <section class="panel" id="p-notify">
+    <form id="ntForm" class="card">
+      <h2 class="display sm">WhatsApp</h2>
+      <p class="note" id="waStatus"></p>
+      <label class="field"><span>Your WhatsApp number <em>(get a ping for every RSVP)</em></span><input name="hostPhone" type="tel" placeholder="+1 555 123 4567"></label>
+      <label class="field"><span>Send reminders this many days before <em>(comma separated)</em></span><input name="reminderDays" placeholder="7, 1"></label>
+      <label class="field"><span>Confirmation message</span><textarea name="confirmTemplate" rows="3"></textarea></label>
+      <label class="field"><span>Reminder message</span><textarea name="reminderTemplate" rows="3"></textarea></label>
+      <p class="note">Placeholders: {name} {event} {status} {date} {venue} {when} {link}</p>
+      <button class="btn btn-gold btn-block">Save</button>
+      <div class="actions"><button type="button" class="btn btn-ghost" id="testWa">Send test to me</button><button type="button" class="btn btn-ghost" id="remindAll">Remind all now</button></div>
+      <p class="note">Reminders go out automatically to everyone who said yes/maybe and gave a number. You can also message any guest from the Guests tab with one tap.</p>
+    </form>
+  </section>
+</div>
+<script src="demo.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

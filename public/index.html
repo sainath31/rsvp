@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>You're Invited</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<!-- Opening screen: the tap is the user gesture that lets music start -->
+<div id="gate" class="gate" role="dialog" aria-label="Open invitation">
+  <div class="gate-card">
+    <div class="seal">&#10084;</div>
+    <p class="eyebrow">You have an invitation</p>
+    <h1 id="gateTitle" class="display">You're Invited</h1>
+    <p id="gateHosts" class="muted"></p>
+    <button id="openBtn" class="btn btn-gold">Open Invitation</button>
+    <p class="hint">&#9835; Music will play</p>
+  </div>
+</div>
+
+<main id="app" class="app" hidden>
+  <header class="hero">
+    <div class="hero-img" id="heroImg"></div>
+    <div class="hero-shade"></div>
+    <div class="hero-text">
+      <p class="eyebrow">Together with <span id="hosts"></span></p>
+      <h1 class="display" id="title"></h1>
+      <p class="hero-date" id="heroDate"></p>
+    </div>
+  </header>
+
+  <div class="content">
+    <section class="card countdown" id="countdown" aria-live="off">
+      <div><b id="cd-d">0</b><span>days</span></div>
+      <div><b id="cd-h">0</b><span>hours</span></div>
+      <div><b id="cd-m">0</b><span>mins</span></div>
+      <div><b id="cd-s">0</b><span>secs</span></div>
+    </section>
+
+    <section class="card">
+      <p id="message" class="message"></p>
+      <ul class="details">
+        <li><span class="ico">&#128197;</span><div><b id="dDate"></b><small id="dTime"></small></div></li>
+        <li><span class="ico">&#128205;</span><div><b id="dVenue"></b><small id="dAddr"></small></div></li>
+        <li id="dressRow" hidden><span class="ico">&#10024;</span><div><b>Dress code</b><small id="dDress"></small></div></li>
+      </ul>
+      <div class="actions">
+        <a class="btn btn-ghost" href="event.ics">Add to calendar</a>
+        <a class="btn btn-ghost" id="mapBtn" target="_blank" rel="noopener" hidden>Directions</a>
+      </div>
+    </section>
+
+    <section class="card" id="rsvp">
+      <h2 class="display sm">Will you join us?</h2>
+      <p class="muted" id="deadline"></p>
+      <form id="form" novalidate>
+        <div class="seg" role="radiogroup" aria-label="Your response">
+          <label><input type="radio" name="status" value="yes" checked><span>&#127881; Joyfully accept</span></label>
+          <label><input type="radio" name="status" value="maybe"><span>&#129300; Maybe</span></label>
+          <label><input type="radio" name="status" value="no"><span>&#128546; Can't make it</span></label>
+        </div>
+
+        <label class="field"><span>Your name</span>
+          <input name="name" autocomplete="name" placeholder="Full name" maxlength="80" required></label>
+
+        <div id="counts" class="row">
+          <div class="field"><span>Adults</span><div class="stepper" data-for="adults"><button type="button" aria-label="Fewer adults">&minus;</button><output id="adultsOut">1</output><button type="button" aria-label="More adults">+</button></div></div>
+          <div class="field"><span>Children</span><div class="stepper" data-for="children"><button type="button" aria-label="Fewer children">&minus;</button><output id="childrenOut">0</output><button type="button" aria-label="More children">+</button></div></div>
+        </div>
+
+        <label class="field"><span>WhatsApp number <em>(for confirmation &amp; reminders)</em></span>
+          <input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+1 555 123 4567" maxlength="30"></label>
+        <label class="field"><span>Message to the hosts <em>(optional)</em></span>
+          <textarea name="note" rows="2" maxlength="300" placeholder="Dietary needs, wishes&hellip;"></textarea></label>
+
+        <p id="err" class="err" role="alert" hidden></p>
+        <button class="btn btn-gold btn-block" id="submit" type="submit">Send RSVP</button>
+      </form>
+
+      <div id="done" class="done" hidden>
+        <div class="check">&#10003;</div>
+        <h2 class="display sm" id="doneTitle">Thank you!</h2>
+        <p class="muted" id="doneText"></p>
+        <div class="actions"><a class="btn btn-ghost" href="event.ics">Add to calendar</a><button class="btn btn-ghost" id="editAgain">Edit response</button></div>
+      </div>
+    </section>
+
+    <footer class="foot"><a href="admin.html">Host login</a></footer>
+  </div>
+</main>
+
+<button id="mute" class="mute" aria-label="Toggle music" hidden>&#9835;</button>
+<audio id="audio" loop preload="auto" playsinline></audio>
+<script src="demo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
