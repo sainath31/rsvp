@@ -62,7 +62,6 @@ async function loadEvent() {
   n.confirmTemplate.value = ev.confirmTemplate; n.reminderTemplate.value = ev.reminderTemplate;
   $('#waStatus').textContent = `Email (Gmail): ${ev.email ? 'connected \u2705' : 'not configured \u26A0'}  \u00b7  WhatsApp API: ${ev.whatsapp ? 'connected \u2705' : 'not configured'}. The one-tap WhatsApp buttons on each guest always work.`;
   $('#imgPrev').style.backgroundImage = ev.imageUrl ? `url("${ev.imageUrl}")` : ''; $('#imgPrev').textContent = ev.imageUrl ? '' : 'No picture yet';
-  $('#sealPrev').style.backgroundImage = `url("${ev.sealUrl || 'seal.jpg'}")`; $('#sealPrev').textContent = '';
   $('#vidPrev').innerHTML = ev.videoUrl ? `<video controls muted playsinline src="${esc(ev.videoUrl)}" style="width:60%;border-radius:12px"></video>` : 'Built-in Krishna & Radha video';
   $('#musPrev').innerHTML = ev.musicUrl ? `<audio controls src="${esc(ev.musicUrl)}"></audio>` : 'Built-in melody';
 }
@@ -79,7 +78,7 @@ $('#ntForm').onsubmit = async (e) => {
     reminderDays: f.reminderDays.value.split(/[,\s]+/).filter(Boolean).map(Number) };
   try { await api('api/admin/event', { method: 'PUT', body: JSON.stringify(body) }); toast('Saved ✓'); loadEvent(); } catch (x) { toast(x.message); }
 };
-for (const [kind, input, del] of [['image', '#imgFile', '#imgDel'], ['video', '#vidFile', '#vidDel'], ['seal', '#sealFile', '#sealDel'], ['music', '#musFile', '#musDel']]) {
+for (const [kind, input, del] of [['image', '#imgFile', '#imgDel'], ['video', '#vidFile', '#vidDel'], ['music', '#musFile', '#musDel']]) {
   $(input).onchange = async (e) => {
     const file = e.target.files[0]; if (!file) return;
     const fd = new FormData(); fd.append('file', file); toast('Uploading…');

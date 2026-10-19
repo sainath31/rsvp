@@ -82,7 +82,6 @@ function render() {
   const e = new Date(new Date(ev.startsAt).getTime() + 36e5 * 3), z = (d) => new Date(d).toISOString().replace(/[-:]|\.\d+/g, '');
   $('#gcal').href = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(ev.startsAt)}/${z(e)}`, details: ev.message, location: `${ev.venue}, ${ev.address}` });
   if (ev.image) { $('#pic').src = ev.image; $('#picCard').hidden = false; }
-  if (ev.seal) $('#seal').src = ev.seal;
   const vid = $('#heroVid');
   if (ev.video) { vid.removeAttribute('poster'); vid.src = ev.video; } else for (const [f, t] of [['hero.mp4', 'video/mp4'], ['hero.webm', 'video/webm']]) vid.append(Object.assign(document.createElement('source'), { src: f, type: t }));
   if (ev.music) { audio.src = ev.music; usingFile = true; }
