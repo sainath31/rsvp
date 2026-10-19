@@ -1,4 +1,4 @@
-# RSVP – premium mobile-first invitation
+# RSVP – gender reveal invitation
 
 Features: opening screen + background music (uploaded track or built-in melody), invitation photo upload,
 RSVP with name / adults / children / WhatsApp number, host-only dashboard (`/admin`, password protected),
