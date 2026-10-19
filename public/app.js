@@ -106,7 +106,7 @@ document.querySelectorAll('.stepper').forEach((el) => {
   minus.onclick = () => set(counts[key] - 1);
   plus.onclick = () => set(counts[key] + 1);
 });
-form.addEventListener('change', () => { $('#counts').hidden = form.status.value === 'no'; });
+form.addEventListener('change', () => { const no = form.status.value === 'no'; $('#counts').hidden = no; $('#guessBox').hidden = no; });
 
 try { const s = JSON.parse(localStorage.getItem('rsvp') || 'null'); if (s) { form.name.value = s.name || ''; form.phone.value = s.phone || ''; form.email.value = s.email || ''; } } catch {}
 
@@ -115,7 +115,7 @@ form.addEventListener('submit', async (e) => {
   const err = $('#err'), btn = $('#submit');
   err.hidden = true;
   if (!form.name.value.trim()) { err.textContent = 'Please enter your name.'; err.hidden = false; form.name.focus(); return; }
-  const body = { name: form.name.value, phone: form.phone.value, email: form.email.value, note: form.note.value, status: form.status.value, adults: counts.adults, children: counts.children };
+  const body = { name: form.name.value, phone: form.phone.value, email: form.email.value, note: form.note.value, status: form.status.value, guess: form.guess.value, adults: counts.adults, children: counts.children };
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
     const res = await fetch('api/rsvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -123,7 +123,7 @@ form.addEventListener('submit', async (e) => {
     if (!res.ok) throw new Error(j.error || 'Something went wrong');
     try { localStorage.setItem('rsvp', JSON.stringify({ name: body.name, phone: body.phone, email: body.email })); } catch {}
     const first = body.name.trim().split(/\s+/)[0];
-    $('#doneTitle').textContent = body.status === 'no' ? `We'll miss you, ${first}` : `See you there, ${first}!`;
+    $('#doneTitle').textContent = body.status === 'no' ? `We'll miss you, ${first}` : `See you there, ${first}!${body.guess ? (body.guess === 'boy' ? ' \uD83D\uDC99' : ' \uD83D\uDC97') : ''}`;
     $('#doneText').textContent = body.status === 'no' ? 'Thank you for letting us know.'
       : `We've got ${j.adults} adult${j.adults === 1 ? '' : 's'}${j.children ? ` and ${j.children} child${j.children === 1 ? '' : 'ren'}` : ''} down.` + ((body.phone || body.email) ? ' A confirmation is on its way, and we’ll remind you as the day gets closer.' : '');
     form.hidden = true; $('#done').hidden = false; $('#rsvp h2').hidden = true; $('#deadline').hidden = true;
@@ -138,7 +138,7 @@ function confetti() {
   const c = Object.assign(document.createElement('canvas'), { width: innerWidth, height: innerHeight });
   Object.assign(c.style, { position: 'fixed', inset: 0, zIndex: 60, pointerEvents: 'none' });
   document.body.append(c);
-  const g = c.getContext('2d'), colors = ['#d9b573', '#f1d9a3', '#8a6cf0', '#fff', '#5aa9ff'];
+  const g = c.getContext('2d'), colors = ['#ff6fa8', '#4f9bff', '#f1d9a3', '#fff', '#ffc6dc'];
   const ps = Array.from({ length: 110 }, () => ({ x: innerWidth / 2, y: innerHeight * .6, vx: (Math.random() - .5) * 14, vy: -Math.random() * 14 - 4, s: 4 + Math.random() * 5, c: colors[Math.random() * 5 | 0], r: Math.random() * 6 }));
   let f = 0;
   (function loop() {

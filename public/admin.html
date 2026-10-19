@@ -14,7 +14,7 @@ body{padding-bottom:calc(84px + var(--safe-b))}
 .wrap{max-width:720px;margin:0 auto;padding:calc(20px + var(--safe-t)) 16px}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .top h1{font-size:1.7rem}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:10px;margin-bottom:16px}
 .stat{padding:14px 8px;text-align:center}
 .stat b{display:block;font:600 1.9rem/1 'Cormorant Garamond',serif;color:var(--gold2)}
 .stat span{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
@@ -73,6 +73,8 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
       <div class="card stat"><b id="sPeople">0</b><span>Attending</span></div>
       <div class="card stat"><b id="sAdults">0</b><span>Adults</span></div>
       <div class="card stat"><b id="sKids">0</b><span>Children</span></div>
+      <div class="card stat"><b id="sBoy" style="color:#7fbaff">0</b><span>Team Boy</span></div>
+      <div class="card stat"><b id="sGirl" style="color:#ff9cc3">0</b><span>Team Girl</span></div>
     </div>
     <div class="filters" id="filters">
       <button data-f="all" class="on">All</button><button data-f="yes">Yes</button><button data-f="maybe">Maybe</button><button data-f="no">No</button>

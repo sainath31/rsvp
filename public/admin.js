@@ -29,12 +29,13 @@ function renderGuests() {
   const going = guests.filter((g) => g.status === 'yes');
   const a = going.reduce((n, g) => n + g.adults, 0), c = going.reduce((n, g) => n + g.children, 0);
   $('#sPeople').textContent = a + c; $('#sAdults').textContent = a; $('#sKids').textContent = c;
+  $('#sBoy').textContent = guests.filter((g) => g.guess === 'boy').length; $('#sGirl').textContent = guests.filter((g) => g.guess === 'girl').length;
   const rows = guests.filter((g) => filter === 'all' || g.status === filter);
   const label = { yes: 'Attending', no: 'Declined', maybe: 'Maybe' };
   $('#list').innerHTML = rows.length ? rows.map((g) => `
     <div class="card guest"><div class="h"><div><b>${esc(g.name)}</b>
       <div class="meta">${g.status === 'no' ? 'Not attending' : `${g.adults} adult${g.adults === 1 ? '' : 's'}${g.children ? ` &middot; ${g.children} child${g.children === 1 ? '' : 'ren'}` : ''}`}${g.email ? ` &middot; ${esc(g.email)}` : ''}${g.phone ? ` &middot; ${esc(g.phone)}` : ''}</div></div>
-      <span class="badge ${g.status}">${label[g.status]}</span></div>
+      <span class="badge ${g.status}">${g.guess ? (g.guess === 'boy' ? '\uD83D\uDC99 ' : '\uD83D\uDC97 ') : ''}${label[g.status]}</span></div>
       ${g.note ? `<div class="meta">&ldquo;${esc(g.note)}&rdquo;</div>` : ''}
       <div class="g-act">${g.waLink ? `<a class="btn btn-ghost" target="_blank" rel="noopener" href="${esc(g.waLink)}">&#128172; WhatsApp</a>` : ''}<button class="btn btn-ghost" data-del="${esc(g.id)}">Remove</button></div></div>`).join('')
     : '<p class="empty">No responses yet. Share your invitation link!</p>';

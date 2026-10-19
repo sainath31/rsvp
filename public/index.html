@@ -22,9 +22,9 @@
 <!-- Opening screen: the tap is the user gesture that lets music start -->
 <div id="gate" class="gate" role="dialog" aria-label="Open invitation">
   <div class="gate-card">
-    <div class="seal">&#10084;</div>
-    <p class="eyebrow">You have an invitation</p>
-    <h1 id="gateTitle" class="display">You're Invited</h1>
+    <div class="seal">&#128118;</div>
+    <p class="eyebrow">Gender reveal party</p>
+    <h1 id="gateTitle" class="display">Boy or Girl?</h1>
     <p id="gateHosts" class="muted"></p>
     <button id="openBtn" class="btn btn-gold">Open Invitation</button>
     <p class="hint">&#9835; Music will play</p>
@@ -75,6 +75,9 @@
           <label><input type="radio" name="status" value="maybe"><span>&#129300; Maybe</span></label>
           <label><input type="radio" name="status" value="no"><span>&#128546; Can't make it</span></label>
         </div>
+
+        <div id="guessBox" class="field"><span>Your guess &mdash; which team?</span>
+          <div class="teams"><label><input type="radio" name="guess" value="boy"><span class="tb">&#128153; Team Boy</span></label><label><input type="radio" name="guess" value="girl"><span class="tg">&#128151; Team Girl</span></label></div></div>
 
         <label class="field"><span>Your name</span>
           <input name="name" autocomplete="name" placeholder="Full name" maxlength="80" required></label>

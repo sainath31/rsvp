@@ -94,6 +94,7 @@ app.post('/api/rsvp', async (req, res) => {
   if (!name) return res.status(400).json({ error: 'Please enter your name.' });
   if (status !== 'no' && adults < 1) adults = 1;
   if (status === 'no') adults = 0;
+  const guess = status === 'no' ? '' : ['boy', 'girl'].includes(b.guess) ? b.guess : '';
   const phoneRaw = clean(b.phone, 30);
   const phone = normalizePhone(phoneRaw);
   if (phoneRaw && !phone) return res.status(400).json({ error: 'Please enter a valid WhatsApp number with country code.' });
@@ -106,13 +107,13 @@ app.post('/api/rsvp', async (req, res) => {
   let guest = db.guests.find((g) => (phone && g.phone === phone) || (email && g.email === email) || (!phone && !email && !g.phone && !g.email && g.name.toLowerCase() === name.toLowerCase()));
   const isNew = !guest;
   if (isNew) { guest = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), reminders: {} }; db.guests.push(guest); }
-  Object.assign(guest, { name, phone, email, status, adults, children, note: clean(b.note, 300), updatedAt: new Date().toISOString() });
+  Object.assign(guest, { name, phone, email, guess, status, adults, children, note: clean(b.note, 300), updatedAt: new Date().toISOString() });
   await save();
 
   const link = baseUrl(req);
   const label = { yes: 'attending', no: 'not attending', maybe: 'maybe' }[status];
   // Fire-and-forget notifications; failures never block the guest.
-  const summary = `New RSVP: ${name} \u2013 ${label}${status !== 'no' ? ` (${adults} adult${adults === 1 ? '' : 's'}, ${children} child${children === 1 ? '' : 'ren'})` : ''}${guest.note ? `\nNote: ${guest.note}` : ''}`;
+  const summary = `New RSVP: ${name} \u2013 ${label}${guess ? ` \u2013 Team ${guess === 'boy' ? 'Boy' : 'Girl'}` : ''}${status !== 'no' ? ` (${adults} adult${adults === 1 ? '' : 's'}, ${children} child${children === 1 ? '' : 'ren'})` : ''}${guest.note ? `\nNote: ${guest.note}` : ''}`;
   const host = normalizePhone(db.event.hostPhone);
   if (host) sendWhatsApp(host, '\uD83D\uDCEC ' + summary).then((r) => !r.ok && console.warn('[host wa]', r.error));
   const hostEmail = db.event.hostEmail || process.env.GMAIL_USER;
@@ -190,7 +191,7 @@ app.delete('/api/admin/guests/:id', requireAdmin, async (req, res) => {
 });
 app.get('/api/admin/guests.csv', requireAdmin, (req, res) => {
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""').replace(/^([=+\-@])/, "'$1")}"`;
-  const rows = [['Name', 'Phone', 'Email', 'Status', 'Adults', 'Children', 'Note', 'RSVP date'], ...getDb().guests.map((g) => [g.name, g.phone, g.email, g.status, g.adults, g.children, g.note, g.createdAt])];
+  const rows = [['Name', 'Phone', 'Email', 'Status', 'Adults', 'Children', 'Guess', 'Note', 'RSVP date'], ...getDb().guests.map((g) => [g.name, g.phone, g.email, g.status, g.adults, g.children, g.guess, g.note, g.createdAt])];
   res.type('text/csv').set('Content-Disposition', 'attachment; filename="guests.csv"').send(rows.map((r) => r.map(q).join(',')).join('\n'));
 });
 app.post('/api/admin/remind', requireAdmin, async (req, res) => {
