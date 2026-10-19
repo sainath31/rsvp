@@ -5,7 +5,7 @@
   const K = 'rsvp-demo';
   const load = () => { try { return JSON.parse(localStorage.getItem(K)); } catch { return null; } };
   const db = load() || {
-    event: { title: 'Aria & Dev’s Wedding', hosts: 'Aria & Dev', startsAt: new Date(Date.now() + 45 * 864e5).toISOString(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, durationHours: 4, venue: 'The Garden Pavilion', address: '12 Rosewood Lane', mapUrl: '', message: 'Join us for an evening of joy, food and music. We would be delighted to celebrate with you.', dressCode: 'Festive formal', rsvpDeadline: '', image: '', music: '', hostPhone: '', reminderDays: [7, 1], confirmTemplate: 'Hi {name}! Thanks for your RSVP to {event}.', reminderTemplate: 'Hi {name}, reminder: {event} is {when}!' },
+    event: { title: 'Boy or Girl?', hosts: 'Aria & Dev', startsAt: new Date(Date.now() + 45 * 864e5).toISOString(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, durationHours: 4, venue: 'The Garden Pavilion', address: '12 Rosewood Lane', mapUrl: '', message: 'Join us as we find out whether baby is a little prince or a little princess! Cast your guess, enjoy great food and be there for the big reveal.', dressCode: 'Wear pink or blue to show your team', rsvpDeadline: '', image: '', music: '', hostPhone: '', reminderDays: [7, 1], confirmTemplate: 'Hi {name}! Thanks for your RSVP to {event}.', reminderTemplate: 'Hi {name}, reminder: {event} is {when}!' },
     guests: [],
   };
   const save = () => localStorage.setItem(K, JSON.stringify(db));
@@ -20,7 +20,7 @@
     if (url === 'api/rsvp') {
       if (!body.name?.trim()) return json({ error: 'Please enter your name.' }, 400);
       const no = body.status === 'no';
-      const g = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), name: body.name.trim(), phone: body.phone || '', email: body.email || '', status: body.status, adults: no ? 0 : Math.max(1, body.adults | 0), children: no ? 0 : body.children | 0, note: body.note || '' };
+      const g = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), name: body.name.trim(), phone: body.phone || '', email: body.email || '', guess: no ? '' : body.guess || '', status: body.status, adults: no ? 0 : Math.max(1, body.adults | 0), children: no ? 0 : body.children | 0, note: body.note || '' };
       db.guests.unshift(g); save();
       return json({ ok: true, status: g.status, adults: g.adults, children: g.children });
     }
