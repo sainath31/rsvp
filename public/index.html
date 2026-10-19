@@ -33,7 +33,7 @@
 
 <main id="app" class="app" hidden>
   <header class="hero">
-    <div class="hero-img" id="heroImg"></div>
+    <video id="heroVid" class="hero-vid" muted loop playsinline preload="auto" poster="hero-poster.jpg"></video>
     <div class="hero-shade"></div>
     <div class="hero-text">
       <p class="eyebrow">Together with <span id="hosts"></span></p>
@@ -43,6 +43,8 @@
   </header>
 
   <div class="content">
+    <section class="card pic" id="picCard" hidden><img id="pic" alt="Invitation picture"></section>
+
     <section class="card countdown" id="countdown" aria-live="off">
       <div><b id="cd-d">0</b><span>days</span></div>
       <div><b id="cd-h">0</b><span>hours</span></div>
