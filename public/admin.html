@@ -8,7 +8,7 @@
 <title>Host Dashboard</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 <style>
 body{padding-bottom:calc(84px + var(--safe-b))}
 .wrap{max-width:720px;margin:0 auto;padding:calc(20px + var(--safe-t)) 16px}
@@ -90,6 +90,10 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
       <div class="preview" id="imgPrev">No picture yet</div>
       <div class="actions"><label class="btn btn-ghost">Upload picture<input type="file" id="imgFile" accept="image/jpeg,image/png,image/webp,image/gif" hidden></label><button type="button" class="btn btn-ghost" id="imgDel">Remove</button></div>
 
+      <p class="note" style="margin:1.2rem 0 0">Opening-screen badge <span>(round picture on the "Open Invitation" screen)</span></p>
+      <div class="preview" id="sealPrev" style="aspect-ratio:1;width:120px;border-radius:50%">Default</div>
+      <div class="actions"><label class="btn btn-ghost">Upload badge<input type="file" id="sealFile" accept="image/jpeg,image/png,image/webp" hidden></label><button type="button" class="btn btn-ghost" id="sealDel">Reset</button></div>
+
       <p class="note" style="margin:1.2rem 0 0">Hero video <span>(loops quietly behind the title; leave empty to use the built-in Krishna & Radha video)</span></p>
       <div class="preview" id="vidPrev" style="aspect-ratio:auto;padding:14px">Built-in Krishna & Radha video</div>
       <div class="actions"><label class="btn btn-ghost">Upload video<input type="file" id="vidFile" accept="video/mp4,video/webm" hidden></label><button type="button" class="btn btn-ghost" id="vidDel">Remove</button></div>
@@ -128,7 +132,7 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
     </form>
   </section>
 </div>
-<script src="demo.js?v=5"></script>
-<script src="admin.js?v=5"></script>
+<script src="demo.js?v=6"></script>
+<script src="admin.js?v=6"></script>
 </body>
 </html>

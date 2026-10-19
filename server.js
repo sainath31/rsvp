@@ -71,7 +71,7 @@ app.get('/api/admin/me', requireAdmin, (req, res) => res.json({ ok: true, whatsa
 const publicEvent = (ev) => ({
   title: ev.title, hosts: ev.hosts, startsAt: ev.startsAt, tz: ev.tz, venue: ev.venue,
   address: ev.address, mapUrl: ev.mapUrl, message: ev.message, dressCode: ev.dressCode,
-  rsvpDeadline: ev.rsvpDeadline, image: ev.image ? `/media/${ev.image}` : '', video: ev.video ? `/media/${ev.video}` : '',
+  rsvpDeadline: ev.rsvpDeadline, image: ev.image ? `/media/${ev.image}` : '', video: ev.video ? `/media/${ev.video}` : '', seal: ev.seal ? `/media/${ev.seal}` : '',
   music: ev.music ? `/media/${ev.music}` : '',
 });
 
@@ -146,6 +146,7 @@ app.put('/api/admin/event', requireAdmin, async (req, res) => {
 
 const KINDS = {
   image: { types: { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }, max: 10 },
+  seal: { types: { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }, max: 5 },
   video: { types: { 'video/mp4': 'mp4', 'video/webm': 'webm' }, max: 25 },
   music: { types: { 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'audio/ogg': 'ogg', 'audio/wav': 'wav' }, max: 25 },
 };
@@ -176,7 +177,7 @@ app.delete('/api/admin/upload/:kind', requireAdmin, async (req, res) => {
 });
 
 /* ---------- admin: guests (host-only) ---------- */
-app.get('/api/admin/event', requireAdmin, (req, res) => res.json({ ...getDb().event, imageUrl: getDb().event.image ? `/media/${getDb().event.image}` : '', videoUrl: getDb().event.video ? `/media/${getDb().event.video}` : '', musicUrl: getDb().event.music ? `/media/${getDb().event.music}` : '', link: baseUrl(req), whatsapp: isConfigured(), email: isMailConfigured() }));
+app.get('/api/admin/event', requireAdmin, (req, res) => res.json({ ...getDb().event, imageUrl: getDb().event.image ? `/media/${getDb().event.image}` : '', sealUrl: getDb().event.seal ? `/media/${getDb().event.seal}` : '', videoUrl: getDb().event.video ? `/media/${getDb().event.video}` : '', musicUrl: getDb().event.music ? `/media/${getDb().event.music}` : '', link: baseUrl(req), whatsapp: isConfigured(), email: isMailConfigured() }));
 app.get('/api/admin/guests', requireAdmin, (req, res) => {
   const ev = getDb().event;
   const guests = [...getDb().guests].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((g) => ({

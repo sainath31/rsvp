@@ -5,7 +5,7 @@
   const K = 'rsvp-demo-v3';
   const load = () => { try { return JSON.parse(localStorage.getItem(K)); } catch { return null; } };
   const db = load() || {
-    event: { title: 'Boy or Girl?', hosts: 'Mamatha Devi & Sainath', startsAt: '2026-10-31T20:00:00.000Z', tz: 'America/New_York', durationHours: 4, venue: 'Our Home', address: '35982 Ellsworth PL, Zephyrhills, FL 33541', mapUrl: '', message: 'Join us as we find out whether baby is a little prince or a little princess! Cast your guess, enjoy great food and be there for the big reveal.', dressCode: 'Wear pink or blue to show your team', rsvpDeadline: '', image: '', video: '', music: '', hostPhone: '', reminderDays: [7, 1], confirmTemplate: 'Hi {name}! Thanks for your RSVP to {event}.', reminderTemplate: 'Hi {name}, reminder: {event} is {when}!' },
+    event: { title: 'Boy or Girl?', hosts: 'Mamatha Devi & Sainath', startsAt: '2026-10-31T20:00:00.000Z', tz: 'America/New_York', durationHours: 4, venue: 'Our Home', address: '35982 Ellsworth PL, Zephyrhills, FL 33541', mapUrl: '', message: 'Join us as we find out whether baby is a little prince or a little princess! Cast your guess, enjoy great food and be there for the big reveal.', dressCode: 'Wear pink or blue to show your team', rsvpDeadline: '', image: '', seal: '', video: '', music: '', hostPhone: '', reminderDays: [7, 1], confirmTemplate: 'Hi {name}! Thanks for your RSVP to {event}.', reminderTemplate: 'Hi {name}, reminder: {event} is {when}!' },
     guests: [],
   };
   const save = () => localStorage.setItem(K, JSON.stringify(db));
