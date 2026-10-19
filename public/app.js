@@ -160,11 +160,29 @@ function confetti() {
   $('#mute').hidden = false;
   // Browsers only allow sound after a gesture; try silently first, the gate tap guarantees it.
   if (usingFile) audio.play().then(() => { playing = true; syncMute(); }).catch(() => {});
+  // Tap: music starts, the blue and pink smoke swirl together, and the invitation appears through the mist.
+  let opened = false;
   const open = () => {
-    $('#gate').classList.add('out'); $('#app').hidden = false;
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) $('#heroVid').play().catch(() => {});
-    setTimeout(() => $('#gate').remove(), 800);
+    if (opened) return;
+    opened = true;
+    const gate = $('#gate'), swirl = $('#gateSwirl');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     playMusic();
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      $('#app').hidden = false;
+      if (!reduce) $('#heroVid').play().catch(() => {});
+      gate.classList.add('out');
+      setTimeout(() => gate.remove(), 1400);
+    };
+    if (reduce) return reveal();
+    gate.classList.add('go');
+    swirl.currentTime = 0;
+    swirl.play().catch(() => {});
+    setTimeout(reveal, 2700);
+    setTimeout(() => gate.addEventListener('click', reveal, { once: true }), 500); // tap again to skip ahead
   };
   $('#openBtn').onclick = open;
 })();

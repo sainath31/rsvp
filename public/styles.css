@@ -21,8 +21,14 @@ body{margin:0;min-height:100dvh;background:var(--bg);color:var(--text);font:16px
 .btn-block{width:100%;margin-top:1rem}
 
 /* gate */
-.gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;background:radial-gradient(100% 70% at 50% 20%,#262d66,var(--bg) 70%);transition:opacity .7s,transform .7s}
-.gate.out{opacity:0;transform:scale(1.06);pointer-events:none}
+.gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;overflow:hidden;background:radial-gradient(100% 70% at 50% 20%,#262d66,var(--bg) 70%);transition:opacity 1.2s ease}
+.gate.out{opacity:0;pointer-events:none}
+.gate-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gate-vid.swirl{opacity:0;transition:opacity .6s}
+.gate.go .swirl{opacity:1}
+.gate-shade{position:absolute;inset:0;background:radial-gradient(70% 45% at 50% 50%,rgba(11,16,48,.72),rgba(11,16,48,.25) 100%)}
+.gate-card{position:relative;transition:opacity .5s,transform .5s}
+.gate.go .gate-card{opacity:0;transform:translateY(-10px);pointer-events:none}
 .gate-card{text-align:center;max-width:360px;animation:rise .9s ease both}
 .gate-card .display{font-size:clamp(2.6rem,12vw,3.6rem);margin:.2rem 0 .4rem}
 .gate-card .btn{margin-top:1.6rem;width:100%}
