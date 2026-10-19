@@ -170,6 +170,7 @@ function confetti() {
       if (revealed) return;
       revealed = true;
       $('#app').hidden = false;
+      document.body.classList.remove('entrance');
       if (!reduce) $('#heroVid').play().catch(() => {});
       gate.classList.add('out');
       setTimeout(() => gate.remove(), 1400);

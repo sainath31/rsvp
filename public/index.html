@@ -14,15 +14,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
-<body>
+<body class="entrance">
 <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
 
 <!-- Opening screen: the tap is the user gesture that lets music start -->
 <div id="gate" class="gate" role="dialog" aria-label="Open invitation">
-  <video id="gateIdle" class="gate-vid" muted loop autoplay playsinline preload="auto" poster="gate-poster.jpg"><source src="gate-idle.mp4" type="video/mp4"><source src="gate-idle.webm" type="video/webm"></video>
-  <video id="gateSwirl" class="gate-vid swirl" muted playsinline preload="auto"><source src="gate-swirl.mp4" type="video/mp4"><source src="gate-swirl.webm" type="video/webm"></video>
+  <video id="gateIdle" class="gate-vid" muted loop autoplay playsinline preload="auto" poster="gate-gold-poster.jpg"><source src="gate-gold-idle.mp4" type="video/mp4"><source src="gate-gold-idle.webm" type="video/webm"></video>
+  <video id="gateSwirl" class="gate-vid swirl" muted playsinline preload="auto"><source src="gate-gold-swirl.mp4" type="video/mp4"><source src="gate-gold-swirl.webm" type="video/webm"></video>
   <div class="gate-shade"></div>
   <div class="gate-card">
     <button id="openBtn" class="btn btn-gold">Open Invitation</button>
@@ -106,13 +106,13 @@
       </div>
     </section>
 
-    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v10 &middot; Oct 31</small></footer>
+    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v11 &middot; Oct 31</small></footer>
   </div>
 </main>
 
 <button id="mute" class="mute" aria-label="Toggle music" hidden>&#9835;</button>
 <audio id="audio" loop preload="auto" playsinline></audio>
-<script src="demo.js?v=10"></script>
-<script src="app.js?v=10"></script>
+<script src="demo.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
