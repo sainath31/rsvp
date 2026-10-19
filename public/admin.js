@@ -62,7 +62,7 @@ async function loadEvent() {
   n.confirmTemplate.value = ev.confirmTemplate; n.reminderTemplate.value = ev.reminderTemplate;
   $('#waStatus').textContent = `Email (Gmail): ${ev.email ? 'connected \u2705' : 'not configured \u26A0'}  \u00b7  WhatsApp API: ${ev.whatsapp ? 'connected \u2705' : 'not configured'}. The one-tap WhatsApp buttons on each guest always work.`;
   $('#imgPrev').style.backgroundImage = ev.imageUrl ? `url("${ev.imageUrl}")` : ''; $('#imgPrev').textContent = ev.imageUrl ? '' : 'No picture yet';
-  $('#vidPrev').innerHTML = ev.videoUrl ? `<video controls muted playsinline src="${esc(ev.videoUrl)}" style="width:60%;border-radius:12px"></video>` : 'Built-in smoke reveal';
+  $('#vidPrev').innerHTML = ev.videoUrl ? `<video controls muted playsinline src="${esc(ev.videoUrl)}" style="width:60%;border-radius:12px"></video>` : 'Built-in Krishna & Radha video';
   $('#musPrev').innerHTML = ev.musicUrl ? `<audio controls src="${esc(ev.musicUrl)}"></audio>` : 'Built-in melody';
 }
 $('#evForm').onsubmit = async (e) => {
