@@ -65,8 +65,6 @@ const fmt = (o) => new Intl.DateTimeFormat('en-US', { timeZone: ev.tz, ...o }).f
 
 function render() {
   document.title = `${ev.title} – ${ev.hosts}`;
-  $('#gateTitle').textContent = ev.title;
-  $('#gateHosts').textContent = `from ${ev.hosts}`;
   $('#title').textContent = ev.title;
   $('#hosts').textContent = ev.hosts;
   $('#message').textContent = ev.message;
