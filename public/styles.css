@@ -6,7 +6,7 @@ body{margin:0;min-height:100dvh;background:var(--bg);color:var(--text);font:16px
 .bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(120% 80% at 50% 0,#1d2350 0,var(--bg) 60%)}
 .bg{transition:opacity 1.5s}
 body.entrance .bg{opacity:0}
-.bg i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.35;animation:float 16s ease-in-out infinite}
+.bg i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.35;}
 .bg i:nth-child(1){width:300px;height:300px;background:#4f9bff;top:-60px;left:-80px}
 .bg i:nth-child(2){width:260px;height:260px;background:#d9b573;bottom:10%;right:-90px;animation-delay:-5s;opacity:.18}
 .bg i:nth-child(3){width:240px;height:240px;background:#ff6fa8;bottom:-80px;left:10%;animation-delay:-9s;opacity:.22}
@@ -24,7 +24,7 @@ body.entrance .bg{opacity:0}
 
 /* gate */
 .gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;overflow:hidden;background:radial-gradient(100% 70% at 50% 20%,#262d66,var(--bg) 70%);transition:opacity 1.2s ease}
-.gate.out{opacity:0;pointer-events:none}
+.gate.out{opacity:0;pointer-events:none;transition:opacity 1.6s cubic-bezier(.4,0,.2,1)}
 .gate-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .gate-vid.swirl{opacity:0;transition:opacity .6s}
 .gate.go .swirl{opacity:1}
@@ -43,7 +43,7 @@ body.entrance .bg{opacity:0}
 .pic{padding:8px}
 .pic img{display:block;width:100%;border-radius:16px}
 .hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,16,32,0) 0,rgba(13,16,32,.05) 45%,rgba(13,16,32,.94) 100%)}
-.hero-text{position:absolute;left:0;right:0;bottom:0;padding:24px 24px 34px;text-align:center;animation:rise 1.4s 3.5s ease both}
+.hero-text{position:absolute;left:0;right:0;bottom:0;padding:24px 24px 34px;text-align:center;animation:rise 1.4s 2.4s ease both}
 .hero-text .display{font-size:clamp(2.6rem,12vw,3.8rem);text-shadow:0 2px 24px rgba(0,0,0,.45)}
 .hero-date{margin:.8rem 0 0;color:var(--gold2);letter-spacing:.08em;font-size:.9rem;font-weight:500}
 .content{padding:18px 16px 0;display:grid;gap:16px;margin-top:-6px}

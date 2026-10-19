@@ -157,30 +157,55 @@ function confetti() {
   $('#mute').hidden = false;
   // Browsers only allow sound after a gesture; try silently first, the gate tap guarantees it.
   if (usingFile) audio.play().then(() => { playing = true; syncMute(); }).catch(() => {});
-  // Tap: music starts, the blue and pink smoke swirl together, and the invitation appears through the mist.
+  // Tap: music starts, the smoke swirls together, and the invitation appears through the mist.
+  // Every step has a timer fallback, so a slow or blocked video can never leave the screen stuck.
   let opened = false;
   const open = () => {
     if (opened) return;
     opened = true;
-    const gate = $('#gate'), swirl = $('#gateSwirl');
+    const gate = $('#gate'), swirl = $('#gateSwirl'), idle = $('#gateIdle'), hv = $('#heroVid');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     playMusic();
-    let revealed = false;
+
+    const startHero = () => {
+      hv.currentTime = 0;
+      const p = hv.play();
+      if (p) p.catch(() => hv.addEventListener('canplay', () => hv.play().catch(() => {}), { once: true }));
+    };
+    let prepared = false, revealed = false;
+    // Start the invitation video underneath the mist, so it is already moving when the mist clears.
+    const prepare = () => {
+      if (prepared) return;
+      prepared = true;
+      $('#app').hidden = false;
+      document.body.classList.remove('entrance');
+      if (!reduce) startHero();
+    };
     const reveal = () => {
       if (revealed) return;
       revealed = true;
-      $('#app').hidden = false;
-      document.body.classList.remove('entrance');
-      if (!reduce) $('#heroVid').play().catch(() => {});
+      prepare();
       gate.classList.add('out');
-      setTimeout(() => gate.remove(), 1400);
+      setTimeout(() => { idle.pause(); gate.remove(); }, 1900);
     };
     if (reduce) return reveal();
-    gate.classList.add('go');
+
+    let swirling = false;
+    const begin = () => {
+      if (swirling || revealed) return;
+      swirling = true;
+      gate.classList.add('go');
+      setTimeout(() => idle.pause(), 700); // one video decoding at a time keeps phones smooth
+      setTimeout(prepare, 1900);
+      setTimeout(reveal, 3000);
+      setTimeout(() => gate.addEventListener('click', reveal, { once: true }), 500); // tap again to skip
+    };
     swirl.currentTime = 0;
-    swirl.play().catch(() => {});
-    setTimeout(reveal, 3000);
-    setTimeout(() => gate.addEventListener('click', reveal, { once: true }), 500); // tap again to skip ahead
+    const started = swirl.play();
+    swirl.addEventListener('playing', begin, { once: true });
+    if (started) started.catch(() => reveal());
+    // Swirl video didn't start promptly (slow network, autoplay blocked): skip it rather than hang.
+    setTimeout(() => { if (!swirling) reveal(); }, 1200);
   };
   $('#openBtn').onclick = open;
 })();
