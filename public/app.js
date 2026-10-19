@@ -64,9 +64,9 @@ document.addEventListener('visibilitychange', () => {
 const fmt = (o) => new Intl.DateTimeFormat('en-US', { timeZone: ev.tz, ...o }).format(new Date(ev.startsAt));
 
 function render() {
-  document.title = `${ev.hosts} – ${ev.title}`;
-  $('#title').textContent = ev.hosts;
-  $('#subtitle').textContent = ev.title;
+  document.title = `${ev.title} – ${ev.hosts}`;
+  $('#title').textContent = ev.title;
+  $('#hosts').textContent = ev.hosts;
   $('#message').textContent = ev.message;
   $('#heroDate').textContent = fmt({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
   $('#dDate').textContent = fmt({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
