@@ -1,0 +1,6 @@
+tests/
+data/
+.github/
+scripts/gen-ics.mjs
+README.md
+DEPLOY.md

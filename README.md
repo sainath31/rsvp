@@ -18,7 +18,7 @@ Turn on 2-Step Verification for your Google account, create an **App password**,
 and reminders are emailed automatically (7 and 1 days before by default). Personal Gmail allows ~500 emails/day.
 
 ## Deployments
-- **GitHub Pages** (`.github/workflows/pages.yml`): static *preview only*. Pages cannot run the Node server, so `public/demo.js`
-  emulates the API in the visitor's browser (host password `demo`; no uploads or email).
-- **Vercel / production**: needs the real backend. Data is stored in `DATA_DIR/db.json` and uploads on disk, which
-  do not persist on Vercel serverless – use a host with a volume (Render/Railway/Fly) or move storage to a DB + blob store.
+- **Production (Vercel, free):** see [DEPLOY.md](DEPLOY.md). Redis stores guests, Blob stores optional uploads, a daily Cron sends reminders.
+- **Any host with a persistent disk:** `NODE_ENV=production ADMIN_PASSWORD=... SESSION_SECRET=... DATA_DIR=/data npm start`.
+- **GitHub Pages preview:** static only (`public/demo.js` fakes the API in the visitor's browser; host password `demo`).
+- **Tests:** `node tests/prod.mjs` (Redis, Blob, cron, sessions, security) and `node tests/ui.mjs` (host login screen, security policy).

@@ -1,15 +1,16 @@
 {
   "name": "rsvp",
   "version": "1.0.0",
-  "description": "Premium mobile-first RSVP invitation app with WhatsApp notifications and reminders",
+  "description": "Premium mobile-first RSVP invitation with email confirmations, reminders and a host-only guest list",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "build": "node scripts/prepare.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": "22.x"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",

@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 const raw = process.env.SITE_URL || process.env.PUBLIC_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
 const site = raw.replace(/\/$/, '');
+if (!raw && !process.env.VERCEL && !process.env.CI) { console.log('prepare: no SITE_URL / CI / Vercel detected - leaving public/index.html unchanged'); process.exit(0); }
 const file = new URL('../public/index.html', import.meta.url);
 const html = fs.readFileSync(file, 'utf8');
 fs.writeFileSync(file, html.replaceAll('__SITE_URL__', site));

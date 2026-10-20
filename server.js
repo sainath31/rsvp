@@ -37,7 +37,7 @@ const baseUrl = (req) => (process.env.PUBLIC_URL || `${req.protocol}://${req.get
 const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-app.get('/healthz', wrap(async (req, res) => {
+app.get(['/healthz', '/api/healthz'], wrap(async (req, res) => {
   await getEvent(); // proves the storage is reachable
   res.json({ ok: true, storage: storageKind, uploads: mediaMode, email: isMailConfigured(), hostLogin: !loginProblem });
 }));
@@ -116,7 +116,7 @@ app.post('/api/rsvp', wrap(async (req, res) => {
   res.json({ ok: true, updated: !isNew, status, adults, children });
 }));
 
-app.get('/event.ics', wrap(async (req, res) => {
+app.get(['/event.ics', '/api/event.ics'], wrap(async (req, res) => {
   // inline (not attachment) lets iPhone Safari open its "Add to Calendar" sheet directly; Android downloads it.
   res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'inline; filename="invitation.ics"', 'Cache-Control': 'no-cache' }).send(buildIcs(await getEvent(), baseUrl(req)));
 }));
