@@ -44,7 +44,7 @@ app.get(['/healthz', '/api/healthz'], wrap(async (req, res) => {
   res.json({
     ok: true, storage: storageKind, uploads: mediaMode, email: isMailConfigured(), hostLogin: !loginProblem,
     ...(loginProblem ? { hostLoginProblem: loginProblem } : {}),
-    ...(!dataIsDurable ? { warning: 'The database is not connected, so RSVPs are NOT being saved permanently. Connect the Redis database to this project and redeploy.', databaseVariablesFound: redisVarNames() } : {}),
+    ...(!dataIsDurable ? { warning: 'The database is not connected, so RSVPs are NOT being saved permanently. Connect the Redis database to this project and redeploy.', variableNamesOnThisSite: redisVarNames() } : {}),
   });
 }));
 

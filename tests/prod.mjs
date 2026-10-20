@@ -147,9 +147,16 @@ await stop(A);
 A = start('tests/serverless-runner.mjs', { ...redisBase, RUNNER_PORT: '4016', STORAGE_UPSTASH_REDIS_REST_URL: 'http://localhost:4001', STORAGE_UPSTASH_REDIS_REST_TOKEN: 'tok' }); await waitReady(A, 4016);
 r = await call('http://localhost:4016', 'GET', '/healthz'); ok('G2 a prefixed UPSTASH_REDIS_REST_* connection is detected too', r.json?.storage === 'redis', r.text); await stop(A);
 A = start('tests/serverless-runner.mjs', { ...redisBase, RUNNER_PORT: '4017', KV_REST_API_READ_ONLY_TOKEN: 'ro', REDIS_URL: 'rediss://x', KV_URL: 'rediss://y' }); await waitReady(A, 4017);
-r = await call('http://localhost:4017', 'GET', '/healthz'); ok('G3 no usable REST connection: healthz warns clearly and lists the variable NAMES found (never values)', r.json?.storage === 'file' && /NOT being saved/.test(r.json?.warning || '') && r.json?.databaseVariablesFound?.includes('REDIS_URL') && !/rediss:/.test(r.text), r.text);
+r = await call('http://localhost:4017', 'GET', '/healthz'); ok('G3 no usable REST connection: healthz warns clearly and lists the variable NAMES found (never values)', r.json?.storage === 'file' && /NOT being saved/.test(r.json?.warning || '') && r.json?.variableNamesOnThisSite?.includes('REDIS_URL') && !/rediss:/.test(r.text), r.text);
 const gc = (await call('http://localhost:4017', 'POST', '/api/admin/login', { body: { password: PASS } })).res.headers.get('set-cookie').split(';')[0];
 r = await call('http://localhost:4017', 'GET', '/api/admin/event', { cookie: gc }); ok('G3b dashboard is told the data is not durable (shows a warning banner)', r.json?.durable === false, JSON.stringify([r.json?.storage, r.json?.durable])); await stop(A);
+
+A = start('tests/serverless-runner.mjs', { ...redisBase, RUNNER_PORT: '4018', STORAGE_REST_API_URL: 'http://localhost:4001', STORAGE_REST_API_TOKEN: 'tok', STORAGE_REST_API_READ_ONLY_TOKEN: 'ro' }); await waitReady(A, 4018);
+r = await call('http://localhost:4018', 'GET', '/healthz'); ok('G4 a custom-prefix connection (STORAGE_REST_API_URL / _TOKEN) is detected', r.json?.storage === 'redis', r.text); await stop(A);
+A = start('tests/serverless-runner.mjs', { ...redisBase, RUNNER_PORT: '4019', UPSTASH_REDIS_REST_URL: 'http://localhost:4001', UPSTASH_REDIS_REST_TOKEN: 'tok' }); await waitReady(A, 4019);
+r = await call('http://localhost:4019', 'GET', '/healthz'); ok('G5 variables copied by hand from the Upstash console (UPSTASH_REDIS_REST_URL / _TOKEN) work', r.json?.storage === 'redis', r.text); await stop(A);
+A = start('tests/serverless-runner.mjs', { ...redisBase, RUNNER_PORT: '4021', MYDB_URL: 'http://localhost:4001', MYDB_TOKEN: 'tok' }); await waitReady(A, 4021);
+r = await call('http://localhost:4021', 'GET', '/healthz'); ok('G6 unrecognised names are not mistaken for a database, and are listed (names only) to help fix it', r.json?.storage === 'file' && r.json?.variableNamesOnThisSite?.includes('MYDB_URL') && !/localhost:4001/.test(r.text), r.text); await stop(A);
 
 const nodeProd = (env) => start('server.js', { NODE_ENV: 'production', PORT: '4020', DATA_DIR: '/tmp/claude-0/prod-c', ...env });
 let C = nodeProd({}); await sleep(1200); ok('C1 production refuses to start without ADMIN_PASSWORD', C.exitCode === 1, C.out);
