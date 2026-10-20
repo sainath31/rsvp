@@ -121,6 +121,7 @@ const vj = JSON.parse(fs.readFileSync('vercel.json', 'utf8')); const { CSP } = a
 ok('D1 vercel.json CSP matches the server CSP', vj.headers[0].headers.find((x) => x.key === 'Content-Security-Policy')?.value === CSP);
 ok('D2 vercel.json cron path matches the route', vj.crons[0].path === '/api/cron/reminders');
 ok('D3 vercel.json is valid and serves public/ with admin/event/healthz rewrites', vj.outputDirectory === 'public' && ['/admin', '/event.ics', '/healthz'].every((s) => vj.rewrites.some((x) => x.source === s)));
+ok('D3b vercel.json forces the plain "Other" preset (Vercel would otherwise auto-detect Express and look for a single entry file)', vj.framework === null);
 ok('D4 Vercel entry file exists and re-exports the app', /export default app/.test(fs.readFileSync('api/[...path].js', 'utf8')));
 const pj = JSON.parse(fs.readFileSync('package.json', 'utf8')); ok('D5 package.json pins Node 22 and has no WhatsApp leftovers', pj.engines.node === '22.x' && !/whatsapp/i.test(JSON.stringify(pj)));
 fs.copyFileSync('public/index.html', '/tmp/claude-0/index.backup.html');
