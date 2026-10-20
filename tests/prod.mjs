@@ -70,6 +70,18 @@ const eli = r.json.guests.find((g) => g.name === 'Eli');
 r = await call(base, 'DELETE', `/api/admin/guests/${eli.id}`, { cookie: good }); ok('A11c host can remove a guest', r.status === 200); r = await call(base, 'GET', '/api/admin/guests', { cookie: good }); ok('A11d removed from Redis', r.json?.guests?.length === 4 && upstash.hashes.get('rsvp:guests').size === 4);
 r = await call(base, 'GET', '/api/admin/guests.csv', { cookie: good }); ok('A11e CSV export works', r.status === 200 && r.text.split('\n').length === 5 && !/Phone/.test(r.text), r.text.slice(0, 120));
 
+// ---- host-only "Count in totals" switch ----
+{ const gl = (await call(base, 'GET', '/api/admin/guests', { cookie: good })).json.guests; const ben = gl.find((g) => g.name === 'Ben'); const cara = gl.find((g) => g.name === 'Cara');
+  r = await call(base, 'PATCH', `/api/admin/guests/${ben.id}`, { body: { excluded: true } }); ok('H1 only the host can switch a response off (401 without login)', r.status === 401);
+  r = await call(base, 'PATCH', `/api/admin/guests/${ben.id}`, { cookie: good, body: { excluded: true } }); ok('H2 host can exclude a response from the counts', r.status === 200 && r.json?.guest?.excluded === true, r.text);
+  ok('H2b the switch is saved in Redis', JSON.parse(upstash.hashes.get('rsvp:guests').get(ben.id)).excluded === true);
+  r = await call(base, 'PATCH', '/api/admin/guests/does-not-exist', { cookie: good, body: { excluded: true } }); ok('H3 unknown guest gives 404', r.status === 404);
+  r = await call(base, 'PATCH', `/api/admin/guests/${ben.id}`, { cookie: good, body: { excluded: 'yes' } }); ok('H3b a non-boolean value is ignored', r.json?.guest?.excluded === true);
+  await rsvp({ name: 'Ben', status: 'yes', adults: 2, email: 'ben@example.com' }); r = await call(base, 'GET', '/api/admin/guests', { cookie: good }); const ben2 = r.json.guests.find((g) => g.name === 'Ben');
+  ok('H4 the guest updating their own RSVP does not undo the switch', ben2.excluded === true && ben2.adults === 2, JSON.stringify(ben2));
+  await rsvp({ name: 'Cara', status: 'maybe', adults: 1, email: 'cara@example.com', excluded: true }); r = await call(base, 'GET', '/api/admin/guests', { cookie: good }); ok('H5 a guest cannot switch themselves off through the public form', !r.json.guests.find((g) => g.name === 'Cara').excluded);
+  r = await call(base, 'GET', '/api/admin/guests.csv', { cookie: good }); const rows = r.text.split('\n'); ok('H6 CSV says who is counted in totals', /Counted in totals/.test(rows[0]) && rows.some((l) => l.startsWith('"Ben"') && l.includes('"no"')) && rows.some((l) => l.startsWith('"Cara"') && l.includes('"yes"')), r.text.slice(0, 300)); }
+
 await stop(A); A = start('tests/serverless-runner.mjs', envA(4010)); await waitReady(A, 4010);
 r = await call(base, 'GET', '/api/admin/guests', { cookie: good }); ok('A12 data and host session survive a cold start / new instance', r.status === 200 && r.json?.guests?.length === 4, r.text.slice(0, 100));
 
@@ -80,7 +92,7 @@ await call(base, 'PUT', '/api/admin/event', { cookie: good, body: { startsAt: ne
 const mark = A.out.length;
 r = await call(base, 'GET', '/api/cron/reminders', { headers: { Authorization: `Bearer ${CRON}` } }); ok('A14 inside the 1-day window: reminders sent to the 3 guests who said yes/maybe with an email', r.json?.sent === 3 && r.json?.failed === 0, r.text);
 ok('A14f reminder emails carry the parking instructions', (A.out.slice(mark).match(/subject=Reminder:[^\n]*Parking:\\nAt the club house\\n35820 Sunflower Hl Dr/g) || []).length === 3, A.out.slice(mark).slice(0, 400));
-const lines = (A.out.slice(mark).match(/\[mail dry-run\] to=\S+ subject=Reminder:/g) || []); ok('A14b exactly those 3 emails went out', lines.length === 3, JSON.stringify(lines));
+const lines = (A.out.slice(mark).match(/\[mail dry-run\] to=\S+ subject=Reminder:/g) || []); ok('A14b exactly those 3 emails went out (a response switched off in the headcount still gets its reminder)', lines.length === 3 && lines.some((l) => l.includes('ben@example.com')), JSON.stringify(lines));
 r = await call(base, 'GET', '/api/cron/reminders', { headers: { Authorization: `Bearer ${CRON}` } }); ok('A14c running the job again sends nothing (no duplicates)', r.json?.sent === 0, r.text);
 ok('A14d reminder history stored in Redis', [...upstash.hashes.get('rsvp:guests').values()].filter((v) => JSON.parse(v).reminders?.['1']).length === 3);
 await call(base, 'PUT', '/api/admin/event', { cookie: good, body: { startsAt: new Date(Date.now() - 3600e3).toISOString() } });

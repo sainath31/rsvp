@@ -15,7 +15,7 @@ body{padding-bottom:calc(84px + var(--safe-b))}
 .top h1{font-size:1.7rem}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:10px;margin-bottom:16px}
 .stat{padding:14px 8px;text-align:center}
-.stat b{display:block;font:600 1.9rem/1 'Cormorant Garamond',serif;color:var(--gold2)}
+.stat b{display:block;font:600 1.9rem/1 'Cormorant Garamond',serif;font-variant-numeric:lining-nums;font-feature-settings:'lnum' 1;color:var(--gold2)}
 .stat span{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;gap:6px;padding:8px 12px calc(8px + var(--safe-b));background:rgba(13,16,32,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--line)}
 .tabs button{flex:1;max-width:200px;border:0;background:none;color:var(--muted);padding:8px;border-radius:14px;font:500 .78rem Inter;cursor:pointer;display:grid;gap:2px;justify-items:center}
@@ -32,6 +32,15 @@ body{padding-bottom:calc(84px + var(--safe-b))}
 .filters{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:4px}
 .filters button{white-space:nowrap;border:1px solid var(--line);background:none;color:var(--muted);padding:7px 14px;border-radius:99px;font:500 .85rem Inter;cursor:pointer}
 .filters button.on{border-color:var(--gold);color:var(--gold2)}
+.sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font:500 .85rem Inter;color:var(--text);user-select:none}
+.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.sw-track{width:44px;height:26px;border-radius:99px;background:rgba(255,255,255,.14);border:1px solid var(--line);position:relative;transition:.2s;flex:none}
+.sw-track::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#cfd3e4;transition:.2s}
+.sw input:checked+.sw-track{background:rgba(217,181,115,.35);border-color:var(--gold)}
+.sw input:checked+.sw-track::after{transform:translateX(18px);background:var(--gold2)}
+.sw input:focus-visible+.sw-track{outline:2px solid var(--gold2);outline-offset:2px}
+.guest.off{opacity:.62}
+.badge.virt{background:rgba(170,176,198,.18);color:#c6cbe0}
 .panel{display:none}.panel.on{display:block;animation:rise .4s ease both}
 .preview{width:100%;aspect-ratio:4/3;border-radius:16px;background:#1b2040 center/cover;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted);margin:8px 0}
 .preview audio{width:90%}
@@ -76,8 +85,9 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
       <div class="card stat"><b id="sBoy" style="color:#7fbaff">0</b><span>Team Boy</span></div>
       <div class="card stat"><b id="sGirl" style="color:#ff9cc3">0</b><span>Team Girl</span></div>
     </div>
+    <p class="note" id="exNote" hidden style="text-align:left;margin:-4px 0 12px"></p>
     <div class="filters" id="filters">
-      <button data-f="all" class="on">All</button><button data-f="yes">Yes</button><button data-f="maybe">Maybe</button><button data-f="no">No</button>
+      <button data-f="all" class="on">All</button><button data-f="yes">Yes</button><button data-f="maybe">Maybe</button><button data-f="no">No</button><button data-f="excluded">Not counted</button>
       <button id="csv" style="margin-left:auto">&#11015; CSV</button>
     </div>
     <div id="list"></div>

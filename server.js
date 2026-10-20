@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import multer from 'multer';
-import { getEvent, saveEvent, listGuests, putGuest, removeGuest, storageKind, dataIsDurable, redisVarNames, UPLOAD_DIR } from './lib/store.js';
+import { getEvent, saveEvent, listGuests, getGuest, putGuest, removeGuest, storageKind, dataIsDurable, redisVarNames, UPLOAD_DIR } from './lib/store.js';
 import { mediaMode, maxUploadMB, mediaUrl, saveMedia, deleteMedia } from './lib/media.js';
 import { sendMail, isMailConfigured, validEmail } from './lib/mail.js';
 import { notifyGuest, channelsConfigured } from './lib/notify.js';
@@ -199,10 +199,18 @@ app.get('/api/admin/guests', requireAdmin, wrap(async (req, res) => {
   const guests = (await listGuests()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   res.json({ guests });
 }));
+// Host-only: mark a response as "not counted" in the headcount (e.g. joining virtually). The guest is kept and still gets emails.
+app.patch('/api/admin/guests/:id', requireAdmin, wrap(async (req, res) => {
+  const g = await getGuest(req.params.id);
+  if (!g) return res.status(404).json({ error: 'Guest not found' });
+  if (typeof req.body?.excluded === 'boolean') g.excluded = req.body.excluded;
+  await putGuest(g);
+  res.json({ ok: true, guest: g });
+}));
 app.delete('/api/admin/guests/:id', requireAdmin, wrap(async (req, res) => { await removeGuest(req.params.id); res.json({ ok: true }); }));
 app.get('/api/admin/guests.csv', requireAdmin, wrap(async (req, res) => {
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""').replace(/^([=+\-@])/, "'$1")}"`;
-  const rows = [['Name', 'Email', 'Status', 'Adults', 'Children', 'Guess', 'Note', 'RSVP date'], ...(await listGuests()).map((g) => [g.name, g.email, g.status, g.adults, g.children, g.guess, g.note, g.createdAt])];
+  const rows = [['Name', 'Email', 'Status', 'Adults', 'Children', 'Counted in totals', 'Guess', 'Note', 'RSVP date'], ...(await listGuests()).map((g) => [g.name, g.email, g.status, g.adults, g.children, g.status === 'no' ? '' : g.excluded ? 'no' : 'yes', g.guess, g.note, g.createdAt])];
   res.type('text/csv').set('Content-Disposition', 'attachment; filename="guests.csv"').send(rows.map((r) => r.map(q).join(',')).join('\n'));
 }));
 app.post('/api/admin/remind', requireAdmin, wrap(async (req, res) => {

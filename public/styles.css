@@ -123,6 +123,8 @@ input[type=text],input[type=tel],input:not([type]),textarea,input[name]{font:inh
 .modal-x{position:absolute;top:8px;right:10px;width:36px;height:36px;border:0;border-radius:50%;background:none;color:var(--muted);font-size:1.6rem;line-height:1;cursor:pointer}
 @keyframes fadein{from{opacity:0}}
 #dPark{white-space:pre-line}
+/* digits: lining numerals so a 1 never looks like a capital I (counts and the countdown must be unambiguous) */
+.countdown b,.stepper output,.stat b{font-variant-numeric:lining-nums;font-feature-settings:'lnum' 1}
 /* scroll reveal */
 .rv{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease}
 .rv.in{opacity:1;transform:none}

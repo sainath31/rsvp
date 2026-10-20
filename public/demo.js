@@ -31,6 +31,7 @@
     if (url === 'api/admin/me') return json({ ok: true });
     if (url === 'api/admin/event') { if (m === 'PUT') { Object.assign(e, Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined))); save(); } return json({ ...e, imageUrl: e.image, musicUrl: e.music }); }
     if (url === 'api/admin/guests') return json({ guests: db.guests });
+    if (url.startsWith('api/admin/guests/') && m === 'PATCH') { const g = db.guests.find((x) => x.id === url.split('/').pop()); if (g && typeof body.excluded === 'boolean') { g.excluded = body.excluded; save(); } return json({ ok: true, guest: g }); }
     if (url.startsWith('api/admin/guests/') && m === 'DELETE') { db.guests = db.guests.filter((g) => g.id !== url.split('/').pop()); save(); return json({ ok: true }); }
     if (url.startsWith('api/admin/upload/')) return json({ error: 'Uploads need the live server (not available in preview).' }, 400);
     return json({ error: 'Not available in preview' }, 400);

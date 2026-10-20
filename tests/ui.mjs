@@ -3,6 +3,8 @@ import { spawn } from 'node:child_process';
 const require = createRequire('/usr/lib/node_modules/');
 let pw; try { pw = require('playwright'); } catch { pw = require('/usr/local/lib/node_modules/playwright'); }
 const PASS = 'a-strong-host-password-2026';
+import fs from 'node:fs';
+fs.rmSync('/tmp/claude-0/ui-data', { recursive: true, force: true });
 const srv = spawn('node', ['server.js'], { env: { ...process.env, NODE_ENV: 'production', PORT: '4030', ADMIN_PASSWORD: PASS, SESSION_SECRET: 's', DATA_DIR: '/tmp/claude-0/ui-data', MAIL_DRY_RUN: '1' }, stdio: 'ignore' });
 await new Promise((r) => setTimeout(r, 1500));
 const BASE = 'http://localhost:4030';
@@ -31,6 +33,21 @@ ok('U4 right password opens the host dashboard (no second login)', /admin/.test(
 await p.screenshot({ path: '/tmp/claude-0/ui-dash.png' });
 for (const t of ['event', 'notify', 'guests']) { await p.tap(`.tabs button[data-tab=${t}]`); await p.waitForTimeout(300); }
 ok('U4b dashboard tabs work and the page does not scroll sideways', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+// ---- Count in totals switch (dashboard) ----
+await p.evaluate(async () => { for (const g of [{ name: 'Alice In-Person', status: 'yes', adults: 2, children: 1, email: 'a@example.com', guess: 'girl' }, { name: 'Virtual Vic', status: 'yes', adults: 1, children: 0, email: 'v@example.com', guess: 'boy' }, { name: 'Maybe Mia', status: 'maybe', adults: 1, email: 'm@example.com' }, { name: 'No Nina', status: 'no' }]) await fetch('api/rsvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(g) }); });
+await p.reload(); await p.waitForTimeout(1200);
+const nums = () => p.evaluate(() => ({ people: +document.querySelector('#sPeople').textContent, adults: +document.querySelector('#sAdults').textContent, kids: +document.querySelector('#sKids').textContent, boy: +document.querySelector('#sBoy').textContent, girl: +document.querySelector('#sGirl').textContent, note: document.querySelector('#exNote').hidden ? '' : document.querySelector('#exNote').textContent, switches: [...document.querySelectorAll('input[data-count]')].length }));
+let n = await nums(); ok('U12 totals start with everyone counted', n.people === 4 && n.adults === 3 && n.kids === 1 && n.note === '', JSON.stringify(n));
+ok('U12b declined guests get no switch (only yes/maybe do)', n.switches === 3, JSON.stringify(n));
+await p.tap('label.sw:has(input[aria-label="Count Virtual Vic in totals"])'); await p.waitForTimeout(900); n = await nums();
+ok('U13 switching Virtual Vic off removes them from the headcount', n.people === 3 && n.adults === 2 && n.kids === 1, JSON.stringify(n));
+ok('U13b a note says how many are not counted', /Not counted: 1 response \(1 person\)/.test(n.note), n.note);
+ok('U13c team guesses still include everyone', n.boy === 1 && n.girl === 1, JSON.stringify(n));
+ok('U13d that card is dimmed and says Not counted', await p.evaluate(() => { const c = [...document.querySelectorAll('.guest')].find((x) => x.textContent.includes('Virtual Vic')); return c.classList.contains('off') && /Not counted/.test(c.textContent); }));
+await p.reload(); await p.waitForTimeout(1200); n = await nums(); ok('U14 the choice is remembered after reloading', n.people === 3 && /Not counted: 1/.test(n.note), JSON.stringify(n));
+await p.tap('#filters [data-f=excluded]'); await p.waitForTimeout(300); ok('U15 "Not counted" filter lists only that response', await p.evaluate(() => [...document.querySelectorAll('.guest b')].map((b) => b.textContent).join() === 'Virtual Vic'));
+await p.tap('#filters [data-f=all]'); await p.tap('label.sw:has(input[aria-label="Count Virtual Vic in totals"])'); await p.waitForTimeout(900); n = await nums(); ok('U16 switching back on counts them again', n.people === 4 && n.note === '', JSON.stringify(n));
+await p.goto(BASE + '/admin'); await p.waitForTimeout(800);
 await open();
 await p.tap('#hostBtn'); await p.waitForTimeout(1200);
 ok('U5 when already signed in, the icon goes straight to the dashboard', /admin/.test(await p.evaluate(() => location.pathname)));

@@ -26,20 +26,33 @@ document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
 /* guests */
 async function loadGuests() { guests = (await api('api/admin/guests')).guests; renderGuests(); }
 function renderGuests() {
-  const going = guests.filter((g) => g.status === 'yes');
+  // Headcount = people who said yes and were not switched off with "Count in totals".
+  const going = guests.filter((g) => g.status === 'yes' && !g.excluded);
   const a = going.reduce((n, g) => n + g.adults, 0), c = going.reduce((n, g) => n + g.children, 0);
   $('#sPeople').textContent = a + c; $('#sAdults').textContent = a; $('#sKids').textContent = c;
   $('#sBoy').textContent = guests.filter((g) => g.guess === 'boy').length; $('#sGirl').textContent = guests.filter((g) => g.guess === 'girl').length;
-  const rows = guests.filter((g) => filter === 'all' || g.status === filter);
+  const out = guests.filter((g) => g.status !== 'no' && g.excluded);
+  const outPeople = out.filter((g) => g.status === 'yes').reduce((n, g) => n + g.adults + g.children, 0);
+  $('#exNote').hidden = !out.length;
+  $('#exNote').textContent = out.length ? `Not counted: ${out.length} response${out.length === 1 ? '' : 's'}${outPeople ? ` (${outPeople} ${outPeople === 1 ? 'person' : 'people'})` : ''} switched off, e.g. joining virtually. Team guesses still include everyone.` : '';
+  const rows = guests.filter((g) => filter === 'all' || (filter === 'excluded' ? g.status !== 'no' && g.excluded : g.status === filter));
   const label = { yes: 'Attending', no: 'Declined', maybe: 'Maybe' };
   $('#list').innerHTML = rows.length ? rows.map((g) => `
-    <div class="card guest"><div class="h"><div><b>${esc(g.name)}</b>
+    <div class="card guest${g.excluded && g.status !== 'no' ? ' off' : ''}"><div class="h"><div><b>${esc(g.name)}</b>
       <div class="meta">${g.status === 'no' ? 'Not attending' : `${g.adults} adult${g.adults === 1 ? '' : 's'}${g.children ? ` &middot; ${g.children} child${g.children === 1 ? '' : 'ren'}` : ''}`}${g.email ? ` &middot; ${esc(g.email)}` : ''}</div></div>
       <span class="badge ${g.status}">${g.guess ? (g.guess === 'boy' ? '\uD83D\uDC99 ' : '\uD83D\uDC97 ') : ''}${label[g.status]}</span></div>
       ${g.note ? `<div class="meta">&ldquo;${esc(g.note)}&rdquo;</div>` : ''}
-      <div class="g-act"><button class="btn btn-ghost" data-del="${esc(g.id)}">Remove</button></div></div>`).join('')
+      <div class="g-act">${g.status !== 'no' ? `<label class="sw"><input type="checkbox" data-count="${esc(g.id)}" ${g.excluded ? '' : 'checked'} aria-label="Count ${esc(g.name)} in totals"><span class="sw-track"></span><span>${g.excluded ? 'Not counted' : 'Count in totals'}</span></label>` : ''}<button class="btn btn-ghost" data-del="${esc(g.id)}" style="margin-left:auto">Remove</button></div></div>`).join('')
     : '<p class="empty">No responses yet. Share your invitation link!</p>';
 }
+$('#list').addEventListener('change', async (e) => {
+  const id = e.target.dataset.count; if (!id) return;
+  const g = guests.find((x) => x.id === id); if (!g) return;
+  const want = !e.target.checked; // checked = counted, unchecked = excluded
+  g.excluded = want; renderGuests();
+  try { await api('api/admin/guests/' + id, { method: 'PATCH', body: JSON.stringify({ excluded: want }) }); toast(want ? 'Not counted in totals' : 'Counted in totals'); }
+  catch (x) { g.excluded = !want; renderGuests(); toast(x.message); }
+});
 $('#filters').onclick = (e) => {
   const f = e.target.dataset.f; if (!f) return;
   filter = f; document.querySelectorAll('#filters [data-f]').forEach((b) => b.classList.toggle('on', b.dataset.f === f)); renderGuests();
