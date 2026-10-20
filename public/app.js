@@ -3,7 +3,7 @@ let ev;
 
 /* ---------- music: uploaded track, or a soft built-in synth melody ---------- */
 const audio = $('#audio');
-let ctx, synthTimer, muted = false, playing = false, usingFile = false;
+let ctx, synthTimer, muted = true, playing = false, usingFile = false; // music is off until the guest turns it on
 
 function startSynth() {
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -51,6 +51,8 @@ function pauseMusic() { usingFile ? audio.pause() : stopSynth(); playing = false
 function syncMute() {
   const b = $('#mute');
   b.classList.toggle('off', muted);
+  b.setAttribute('aria-label', muted ? 'Turn music on' : 'Turn music off');
+  b.title = muted ? 'Turn music on' : 'Turn music off';
   b.classList.toggle('on', playing && !muted);
 }
 $('#mute').onclick = () => { muted = !muted; muted ? pauseMusic() : playMusic(); };
@@ -81,7 +83,11 @@ function render() {
   $('#gcal').href = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(ev.startsAt)}/${z(e)}`, details: ev.message, location: `${ev.venue}, ${ev.address}` });
   if (ev.image) { $('#pic').src = ev.image; $('#picCard').hidden = false; }
   const vid = $('#heroVid');
-  if (ev.video) { vid.removeAttribute('poster'); vid.src = ev.video; } else for (const [f, t] of [['hero-v2.mp4', 'video/mp4'], ['hero-v2.webm', 'video/webm']]) vid.append(Object.assign(document.createElement('source'), { src: f, type: t }));
+  // Pick one playable file explicitly (more reliable across phone browsers than <source> children).
+  const can = (t) => !!vid.canPlayType && vid.canPlayType(t) !== '';
+  if (ev.video) { vid.removeAttribute('poster'); vid.src = ev.video; }
+  else vid.src = can('video/mp4; codecs="avc1.42E01E"') || !can('video/webm; codecs="vp9"') ? 'hero-v2.mp4' : 'hero-v2.webm'; // MP4 (H.264) first; WebM only if H.264 is unavailable
+  vid.load();
   if (ev.music) { audio.src = ev.music; usingFile = true; }
   audio.volume = 0.7;
 }
@@ -149,9 +155,15 @@ function confetti() {
 }
 
 /* ---------- smoothness helpers ---------- */
+const showFinalStill = () => { const i = $('#heroImg'); if (i && !i.src.includes('hero-final')) i.src = 'hero-final.jpg'; $('#heroVid').classList.remove('live'); };
 let heroGo = false; // the hero video stays on its first frame (empty pot) until the mist is clearing
 function setupMotion() {
   const hv = $('#heroVid'), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  hv.addEventListener('playing', () => { if (heroGo) hv.classList.add('live'); });
+  hv.addEventListener('error', () => { if (heroGo) showFinalStill(); });
+  hv.addEventListener('stalled', () => { if (heroGo && hv.currentTime < 0.3) setTimeout(() => { if (hv.currentTime < 0.3) showFinalStill(); }, 2500); });
+  if (reduce) showFinalStill();
+  if (/[?&]debug\b/.test(location.search)) debugPanel();
   // 1. Scroll-reveal for the cards.
   const items = [...document.querySelectorAll('.content > .card')];
   if ('IntersectionObserver' in window && !reduce) {
@@ -184,15 +196,23 @@ function setupMotion() {
   }
 }
 
+/* ---------- ?debug: shows what the videos are doing (for troubleshooting on a real phone) ---------- */
+function debugPanel() {
+  const d = Object.assign(document.createElement('pre'), {});
+  Object.assign(d.style, { position: 'fixed', left: '6px', bottom: '6px', zIndex: 999, margin: 0, padding: '6px 8px', maxWidth: '92vw', font: '10px/1.35 monospace', color: '#9f9', background: 'rgba(0,0,0,.8)', borderRadius: '6px', whiteSpace: 'pre-wrap', pointerEvents: 'none' });
+  document.body.append(d);
+  const v = (el, n) => el ? `${n}: t=${el.currentTime.toFixed(1)} paused=${el.paused} ready=${el.readyState} net=${el.networkState} err=${el.error ? el.error.code : '-'} src=${(el.currentSrc || '').split('/').pop() || '(none)'}` : `${n}: (removed)`;
+  setInterval(() => { d.textContent = [v($('#heroVid'), 'hero'), `heroGo=${heroGo} live=${$('#heroVid').classList.contains('live')} still=${($('#heroImg').src || '').split('/').pop()}`, v($('#gateIdle'), 'idle'), v($('#gateSwirl'), 'swirl'), navigator.userAgent.replace(/\(.*?\)/, '').slice(0, 80)].join('\n'); }, 500);
+}
+
 /* ---------- boot ---------- */
 (async () => {
   try {
     ev = await (await fetch('api/event')).json();
   } catch { document.body.innerHTML = '<p style="padding:2rem">Unable to load the invitation. Please refresh.</p>'; return; }
   render(); tick(); setInterval(tick, 1000); setupMotion();
-  $('#mute').hidden = false;
+  $('#mute').hidden = false; syncMute();
   // Browsers only allow sound after a gesture; try silently first, the gate tap guarantees it.
-  if (usingFile) audio.play().then(() => { playing = true; syncMute(); }).catch(() => {});
   // Tap: music starts, the smoke swirls together, and the invitation appears through the mist.
   // Every step has a timer fallback, so a slow or blocked video can never leave the screen stuck.
   let opened = false;
@@ -201,13 +221,16 @@ function setupMotion() {
     opened = true;
     const gate = $('#gate'), swirl = $('#gateSwirl'), idle = $('#gateIdle'), hv = $('#heroVid');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    playMusic();
+    // Unlock the hero video inside this tap: phones only let video start later if it was started by a user gesture.
+    try { hv.muted = true; const pp = hv.play(); if (pp) pp.then(() => { if (!heroGo) { hv.pause(); hv.currentTime = 0; } }).catch(() => {}); } catch {}
 
     const startHero = () => {
       heroGo = true;
       hv.currentTime = 0;
       const p = hv.play();
       if (p) p.catch(() => hv.addEventListener('canplay', () => hv.play().catch(() => {}), { once: true }));
+      // If the video still isn't moving after a few seconds, show a still of the full scene instead of a frozen/blank frame.
+      setTimeout(() => { if (hv.currentTime < 0.3 || hv.paused) showFinalStill(); }, 2500);
     };
     let prepared = false, revealed = false;
     // The app is shown under the mist on the empty-pot first frame; the video only starts as the mist clears.
@@ -236,9 +259,12 @@ function setupMotion() {
       gate.classList.add('go');
       setTimeout(() => idle.pause(), 700); // one video decoding at a time keeps phones smooth
       setTimeout(prepare, 1900);
-      // Hold the mist until the invitation video can actually play (max ~6s), so it never shows a frozen frame.
+      // Hold the mist until the invitation video can actually play (max ~4.5s), so it never shows a frozen frame.
       const t0 = Date.now();
-      const whenReady = () => { if (hv.readyState >= 3 || Date.now() - t0 > 6000) reveal(); else setTimeout(whenReady, 150); };
+      const whenReady = () => {
+        if (hv.error || hv.networkState === 3) { showFinalStill(); reveal(); return; } // video can't load at all: use the still picture
+        if (hv.readyState >= 3 || Date.now() - t0 > 4500) reveal(); else setTimeout(whenReady, 150);
+      };
       setTimeout(whenReady, 3000);
       setTimeout(() => gate.addEventListener('click', reveal, { once: true }), 500); // tap again to skip
     };

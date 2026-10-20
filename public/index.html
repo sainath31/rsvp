@@ -12,7 +12,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preload" href="fonts/great-vibes-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=24">
+<link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body class="entrance">
 <div class="bg" aria-hidden="true"></div>
@@ -29,7 +29,8 @@
 
 <main id="app" class="app" hidden>
   <header class="hero">
-    <video id="heroVid" class="hero-vid" muted loop playsinline preload="auto" poster="hero-start.jpg"></video>
+    <img id="heroImg" class="hero-vid" src="hero-start.jpg" alt="">
+    <video id="heroVid" class="hero-vid" muted loop playsinline webkit-playsinline preload="auto" poster="hero-start.jpg"></video>
     <div class="hero-shade"></div>
     <div class="sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="hero-text">
@@ -105,14 +106,14 @@
       </div>
     </section>
 
-    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v24 &middot; Oct 31</small></footer>
+    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v29 &middot; Oct 31</small></footer>
   </div>
 </main>
 
 <button id="rsvpFab" class="fab" hidden>RSVP now</button>
 <button id="mute" class="mute" aria-label="Toggle music" hidden>&#9835;</button>
-<audio id="audio" loop preload="auto" playsinline></audio>
-<script src="demo.js?v=24"></script>
-<script src="app.js?v=24"></script>
+<audio id="audio" loop preload="none" playsinline></audio>
+<script src="demo.js?v=29"></script>
+<script src="app.js?v=29"></script>
 </body>
 </html>
