@@ -81,7 +81,7 @@ function render() {
   $('#gcal').href = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(ev.startsAt)}/${z(e)}`, details: ev.message, location: `${ev.venue}, ${ev.address}` });
   if (ev.image) { $('#pic').src = ev.image; $('#picCard').hidden = false; }
   const vid = $('#heroVid');
-  if (ev.video) { vid.removeAttribute('poster'); vid.src = ev.video; } else for (const [f, t] of [['hero.mp4', 'video/mp4'], ['hero.webm', 'video/webm']]) vid.append(Object.assign(document.createElement('source'), { src: f, type: t }));
+  if (ev.video) { vid.removeAttribute('poster'); vid.src = ev.video; } else for (const [f, t] of [['hero-v2.mp4', 'video/mp4'], ['hero-v2.webm', 'video/webm']]) vid.append(Object.assign(document.createElement('source'), { src: f, type: t }));
   if (ev.music) { audio.src = ev.music; usingFile = true; }
   audio.volume = 0.7;
 }
@@ -148,12 +148,47 @@ function confetti() {
   })();
 }
 
+/* ---------- smoothness helpers ---------- */
+function setupMotion() {
+  const hv = $('#heroVid'), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // 1. Scroll-reveal for the cards.
+  const items = [...document.querySelectorAll('.content > .card')];
+  if ('IntersectionObserver' in window && !reduce) {
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.08 });
+    items.forEach((el) => { el.classList.add('rv'); io.observe(el); });
+    setTimeout(() => items.forEach((el) => el.classList.add('in')), 6000); // safety net: never leave anything hidden
+  }
+  // 2. Only decode the hero video while it is on screen; restart it if the phone stalls it.
+  let heroVisible = true, last = -1, stalls = 0;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((es) => { heroVisible = es[0].isIntersecting; if (!reduce) { heroVisible ? hv.play().catch(() => {}) : hv.pause(); } }, { threshold: 0.05 }).observe($('.hero'));
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && heroVisible && !reduce) hv.play().catch(() => {}); });
+  setInterval(() => {
+    if ($('#app').hidden || document.hidden || !heroVisible || reduce) return;
+    if (hv.paused) { hv.play().catch(() => {}); return; }
+    stalls = hv.currentTime === last ? stalls + 1 : 0;
+    last = hv.currentTime;
+    if (stalls >= 2) { stalls = 0; try { hv.currentTime = Math.min(hv.duration || 8, hv.currentTime + 0.05); } catch {} hv.play().catch(() => {}); }
+  }, 1500);
+  // 3. Floating RSVP button until the form is on screen.
+  const fab = $('#rsvpFab'), form = $('#rsvp');
+  fab.onclick = () => form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => { fab.hidden = false; }, 4500);
+  if ('IntersectionObserver' in window) {
+    let heroMostlyVisible = true, formVisible = false;
+    const sync = () => fab.classList.toggle('off', heroMostlyVisible || formVisible);
+    new IntersectionObserver((es) => { heroMostlyVisible = es[0].intersectionRatio > 0.6; sync(); }, { threshold: [0, 0.6, 1] }).observe($('.hero'));
+    new IntersectionObserver((es) => { formVisible = es[0].isIntersecting; sync(); }, { threshold: 0.15 }).observe(form);
+  }
+}
+
 /* ---------- boot ---------- */
 (async () => {
   try {
     ev = await (await fetch('api/event')).json();
   } catch { document.body.innerHTML = '<p style="padding:2rem">Unable to load the invitation. Please refresh.</p>'; return; }
-  render(); tick(); setInterval(tick, 1000);
+  render(); tick(); setInterval(tick, 1000); setupMotion();
   $('#mute').hidden = false;
   // Browsers only allow sound after a gesture; try silently first, the gate tap guarantees it.
   if (usingFile) audio.play().then(() => { playing = true; syncMute(); }).catch(() => {});
@@ -197,7 +232,10 @@ function confetti() {
       gate.classList.add('go');
       setTimeout(() => idle.pause(), 700); // one video decoding at a time keeps phones smooth
       setTimeout(prepare, 1900);
-      setTimeout(reveal, 3000);
+      // Hold the mist until the invitation video can actually play (max ~6s), so it never shows a frozen frame.
+      const t0 = Date.now();
+      const whenReady = () => { if (hv.readyState >= 3 || Date.now() - t0 > 6000) reveal(); else setTimeout(whenReady, 150); };
+      setTimeout(whenReady, 3000);
       setTimeout(() => gate.addEventListener('click', reveal, { once: true }), 500); // tap again to skip
     };
     swirl.currentTime = 0;
