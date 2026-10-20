@@ -96,7 +96,11 @@ function render() {
   $('#dVenue').textContent = ev.venue;
   $('#dAddr').textContent = ev.address;
   if (ev.dressCode) { $('#dDress').textContent = ev.dressCode; $('#dressRow').hidden = false; }
-  const map = ev.mapUrl || (ev.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue + ' ' + ev.address)}` : '');
+  // Directions use the street address only (a venue name like "Our Home" matches nothing on a map).
+  // iPhone/iPad -> Apple Maps; everything else -> Google Maps directions. A map link set in the dashboard wins.
+  const isApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const dest = encodeURIComponent(ev.address || '');
+  const map = ev.mapUrl || (ev.address ? (isApple ? `https://maps.apple.com/?daddr=${dest}&dirflg=d` : `https://www.google.com/maps/dir/?api=1&destination=${dest}`) : '');
   if (map) { $('#mapBtn').href = map; $('#mapBtn').hidden = false; }
   if (ev.rsvpDeadline) $('#deadline').textContent = `Kindly reply by ${new Date(ev.rsvpDeadline + 'T12:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
   setupCalendar();
