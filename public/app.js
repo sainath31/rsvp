@@ -243,6 +243,30 @@ function setupHostLogin() {
   });
 }
 
+/* ---------- first screen: keep the smoke moving ---------- */
+// Autoplay can be refused (iPhone Low Power Mode, data saver, slow network). Retry, start on the first touch,
+// and if it still is not moving let the still picture drift so the screen never looks frozen.
+function setupGate() {
+  const idle = $('#gateIdle'), still = $('#gatePoster');
+  if (!idle) return;
+  const tryPlay = () => { if (document.getElementById('gate') && idle.paused) idle.play().catch(() => {}); };
+  const moving = () => !idle.paused && idle.readyState >= 2 && idle.currentTime > 0.15;
+  let last = -1, stuck = 0;
+  const check = () => {
+    if (!document.getElementById('gate')) return clearInterval(timer);
+    if (moving()) { stuck = idle.currentTime === last ? stuck + 1 : 0; last = idle.currentTime; } else stuck = 99;
+    const ok = moving() && stuck < 3;
+    still && still.classList.toggle('drift', !ok);
+    if (!ok) tryPlay();
+  };
+  const timer = setInterval(check, 700);
+  tryPlay(); setTimeout(check, 350);
+  ['canplay', 'loadeddata', 'suspend', 'stalled', 'pause'].forEach((e) => idle.addEventListener(e, tryPlay));
+  idle.addEventListener('playing', check);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { tryPlay(); check(); } });
+  ['touchstart', 'pointerdown', 'keydown', 'scroll'].forEach((e) => addEventListener(e, () => { tryPlay(); setTimeout(check, 250); }, { passive: true }));
+}
+
 /* ---------- smoothness helpers ---------- */
 const showFinalStill = () => { const i = $('#heroImg'); if (i && !i.src.includes('hero-final')) i.src = 'hero-final.jpg'; $('#heroVid').classList.remove('live'); };
 let heroGo = false; // the hero video stays on its first frame (empty pot) until the mist is clearing
@@ -294,6 +318,8 @@ function debugPanel() {
   const v = (el, n) => el ? `${n}: t=${el.currentTime.toFixed(1)} paused=${el.paused} ready=${el.readyState} net=${el.networkState} err=${el.error ? el.error.code : '-'} src=${(el.currentSrc || '').split('/').pop() || '(none)'}` : `${n}: (removed)`;
   setInterval(() => { d.textContent = [v($('#heroVid'), 'hero'), `heroGo=${heroGo} live=${$('#heroVid').classList.contains('live')} still=${($('#heroImg').src || '').split('/').pop()}`, v($('#gateIdle'), 'idle'), v($('#gateSwirl'), 'swirl'), `build ${document.querySelector('meta[name=build]')?.content}`, navigator.userAgent.replace(/\(.*?\)/, '').slice(0, 80)].join('\n'); }, 500);
 }
+
+setupGate(); // starts immediately, before the event details have loaded
 
 /* ---------- boot ---------- */
 (async () => {
