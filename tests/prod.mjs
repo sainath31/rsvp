@@ -22,7 +22,7 @@ const call = async (base, method, url, { body, cookie, headers = {}, raw } = {})
 
 /* ===== A. serverless runner + Redis + Blob + cron ===== */
 const upstash = await startUpstash(4001), blob = await startBlob(4002);
-const envA = (port) => ({ VERCEL: '1', RUNNER_PORT: String(port), KV_REST_API_URL: 'http://localhost:4001', KV_REST_API_TOKEN: 'tok', BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_teststore_abc123', VERCEL_BLOB_API_URL: 'http://localhost:4002', ADMIN_PASSWORD: PASS, SESSION_SECRET: SECRET, CRON_SECRET: CRON, MAIL_DRY_RUN: '1', PUBLIC_URL: 'https://example.vercel.app' });
+const envA = (port) => ({ VERCEL: '1', RUNNER_PORT: String(port), KV_REST_API_URL: 'http://localhost:4001', KV_REST_API_TOKEN: 'tok', BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_teststore_abc123', VERCEL_BLOB_API_URL: 'http://localhost:4002', ADMIN_PASSWORD: PASS, SESSION_SECRET: SECRET, CRON_SECRET: CRON, MAIL_DRY_RUN: 'verbose', PUBLIC_URL: 'https://example.vercel.app' });
 let A = start('tests/serverless-runner.mjs', envA(4010)); const base = 'http://localhost:4010';
 ok('A0 serverless runner boots (no app.listen needed)', await waitReady(A, 4010), A.out);
 
@@ -33,6 +33,7 @@ const rsvp = (body) => call(base, 'POST', '/api/rsvp', { body, headers: { 'X-For
 r = await rsvp({ name: 'Asha', status: 'yes', adults: 2, children: 1, guess: 'girl', email: 'asha@example.com' }); ok('A3 RSVP saved', r.status === 200 && r.json?.ok, r.text);
 ok('A3b RSVP is stored in Redis (not on disk)', upstash.hashes.get('rsvp:guests')?.size === 1 && [...upstash.hashes.get('rsvp:guests').values()][0].includes('asha@example.com'));
 ok('A3c serverless waited for the emails (dry-run lines present)', /\[mail dry-run\] to=asha@example.com subject=Your RSVP/.test(A.out), A.out.slice(-300));
+ok('A3d confirmation email carries the parking instructions and address', /subject=Your RSVP[^\n]*Parking:\\nAt the club house\\n35820 Sunflower Hl Dr/.test(A.out), A.out.slice(-500));
 r = await call(base, 'GET', '/api/admin/guests'); ok('A4 guest list is private without login (401)', r.status === 401);
 
 r = await call(base, 'POST', '/api/admin/login', { body: { password: 'wrong' } }); ok('A5 wrong password rejected', r.status === 401, r.text);
@@ -78,6 +79,7 @@ r = await call(base, 'GET', '/api/cron/reminders', { headers: { Authorization: `
 await call(base, 'PUT', '/api/admin/event', { cookie: good, body: { startsAt: new Date(Date.now() + 20 * 3600e3).toISOString() } });
 const mark = A.out.length;
 r = await call(base, 'GET', '/api/cron/reminders', { headers: { Authorization: `Bearer ${CRON}` } }); ok('A14 inside the 1-day window: reminders sent to the 3 guests who said yes/maybe with an email', r.json?.sent === 3 && r.json?.failed === 0, r.text);
+ok('A14f reminder emails carry the parking instructions', (A.out.slice(mark).match(/subject=Reminder:[^\n]*Parking:\\nAt the club house\\n35820 Sunflower Hl Dr/g) || []).length === 3, A.out.slice(mark).slice(0, 400));
 const lines = (A.out.slice(mark).match(/\[mail dry-run\] to=\S+ subject=Reminder:/g) || []); ok('A14b exactly those 3 emails went out', lines.length === 3, JSON.stringify(lines));
 r = await call(base, 'GET', '/api/cron/reminders', { headers: { Authorization: `Bearer ${CRON}` } }); ok('A14c running the job again sends nothing (no duplicates)', r.json?.sent === 0, r.text);
 ok('A14d reminder history stored in Redis', [...upstash.hashes.get('rsvp:guests').values()].filter((v) => JSON.parse(v).reminders?.['1']).length === 3);

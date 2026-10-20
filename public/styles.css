@@ -122,6 +122,7 @@ input[type=text],input[type=tel],input:not([type]),textarea,input[name]{font:inh
 .modal-card{position:relative;width:100%;max-width:340px;padding:26px 22px 22px;border-radius:24px;border:1px solid var(--line);background:linear-gradient(165deg,#1a2148,#111634);box-shadow:0 24px 60px rgba(0,0,0,.55);animation:rise .35s ease both}
 .modal-x{position:absolute;top:8px;right:10px;width:36px;height:36px;border:0;border-radius:50%;background:none;color:var(--muted);font-size:1.6rem;line-height:1;cursor:pointer}
 @keyframes fadein{from{opacity:0}}
+#dPark{white-space:pre-line}
 /* scroll reveal */
 .rv{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease}
 .rv.in{opacity:1;transform:none}

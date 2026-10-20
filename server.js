@@ -8,7 +8,7 @@ import { getEvent, saveEvent, listGuests, putGuest, removeGuest, storageKind, da
 import { mediaMode, maxUploadMB, mediaUrl, saveMedia, deleteMedia } from './lib/media.js';
 import { sendMail, isMailConfigured, validEmail } from './lib/mail.js';
 import { notifyGuest, channelsConfigured } from './lib/notify.js';
-import { render, fmtDate, buildIcs, googleCalUrl } from './lib/messages.js';
+import { render, fmtDate, buildIcs, googleCalUrl, parkingLine } from './lib/messages.js';
 import { remindGuest, runReminders, startScheduler } from './lib/reminders.js';
 import { securityHeaders, timingSafeEqualStr, issueSession, verifySession, sessionCookie, clearCookie, readCookie } from './lib/security.js';
 
@@ -37,6 +37,8 @@ app.use(express.json({ limit: '100kb' }));
 
 const baseUrl = (req) => (process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
+// Multi-line text (message, parking instructions, email templates): keeps line breaks, drops other control characters.
+const cleanText = (s, max) => String(s ?? '').replace(/\r/g, '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, ' ').trim().slice(0, max);
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 app.get(['/healthz', '/api/healthz'], wrap(async (req, res) => {
@@ -121,7 +123,7 @@ app.post('/api/rsvp', wrap(async (req, res) => {
   const hostEmail = event.hostEmail || process.env.GMAIL_USER;
   const jobs = [];
   if (hostEmail) jobs.push(sendMail(hostEmail, `RSVP: ${name} – ${label}`, summary, link + '/admin').then((r) => !r.ok && console.warn('[host mail]', r.error)));
-  if (email) jobs.push(notifyGuest(guest, `Your RSVP: ${event.title}`, render(event.confirmTemplate, event, guest, link) + (status !== 'no' ? `\n\nAdd to calendar: ${googleCalUrl(event, link)}` : ''), link, status !== 'no' ? [{ filename: 'invitation.ics', content: buildIcs(event, link), contentType: 'text/calendar' }] : undefined).then((r) => !r.ok && console.warn('[confirm]', r.error)));
+  if (email) jobs.push(notifyGuest(guest, `Your RSVP: ${event.title}`, render(event.confirmTemplate, event, guest, link) + (status !== 'no' ? `${parkingLine(event)}\n\nAdd to calendar: ${googleCalUrl(event, link)}` : ''), link, status !== 'no' ? [{ filename: 'invitation.ics', content: buildIcs(event, link), contentType: 'text/calendar' }] : undefined).then((r) => !r.ok && console.warn('[confirm]', r.error)));
   // On serverless the function may be frozen once the response is sent, so wait for the emails; they never block the RSVP itself.
   if (process.env.VERCEL) await Promise.allSettled(jobs);
   res.json({ ok: true, updated: !isNew, status, adults, children });
@@ -146,8 +148,8 @@ app.get('/api/cron/reminders', wrap(async (req, res) => {
 app.put('/api/admin/event', requireAdmin, wrap(async (req, res) => {
   const b = req.body || {};
   const ev = await getEvent();
-  const str = { title: 120, hosts: 120, venue: 120, address: 200, mapUrl: 400, message: 1000, dressCode: 120, parking: 160, parkingAddress: 200, rsvpDeadline: 40, tz: 60, hostEmail: 120, confirmTemplate: 600, reminderTemplate: 600 };
-  for (const [k, max] of Object.entries(str)) if (k in b) ev[k] = clean(k.endsWith('Template') || k === 'message' ? String(b[k]).replace(/\r/g, '') : b[k], max) || (k.endsWith('Template') ? ev[k] : '');
+  const str = { title: 120, hosts: 120, venue: 120, address: 200, mapUrl: 400, message: 1000, dressCode: 120, parking: 400, parkingAddress: 200, rsvpDeadline: 40, tz: 60, hostEmail: 120, confirmTemplate: 600, reminderTemplate: 600 };
+  for (const [k, max] of Object.entries(str)) if (k in b) ev[k] = (k.endsWith('Template') || k === 'message' || k === 'parking' ? cleanText : clean)(b[k], max) || (k.endsWith('Template') ? ev[k] : '');
   if (b.startsAt && !isNaN(new Date(b.startsAt))) ev.startsAt = new Date(b.startsAt).toISOString();
   if ('durationHours' in b) ev.durationHours = Math.min(24, Math.max(1, Number(b.durationHours) || 3));
   if (Array.isArray(b.reminderDays)) ev.reminderDays = b.reminderDays.map(Number).filter((n) => n > 0 && n <= 90).slice(0, 5);

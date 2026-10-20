@@ -98,7 +98,7 @@ function render() {
   $('#dVenue').textContent = ev.venue;
   $('#dAddr').textContent = ev.address;
   if (ev.parking || ev.parkingAddress) {
-    $('#dPark').textContent = [ev.parking, ev.parkingAddress].filter(Boolean).join(' · ');
+    $('#dPark').textContent = [ev.parking, ev.parkingAddress].filter(Boolean).join('\n');
     $('#parkRow').hidden = false;
     if (ev.parkingAddress) {
       // Search with the city/state of the main address when the parking address does not include one.
@@ -210,7 +210,7 @@ function setupCalendar() {
   const start = new Date(ev.startsAt).getTime();
   const end = start + (Number(ev.durationHours) || 3) * 36e5;
   const here = location.href.split(/[?#]/)[0];
-  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(start)}/${z(end)}`, details: `${ev.message}${ev.parking || ev.parkingAddress ? `\n\nParking: ${[ev.parking, ev.parkingAddress].filter(Boolean).join(', ')}` : ''}\n\n${here}`, location: `${ev.venue}, ${ev.address}` });
+  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(start)}/${z(end)}`, details: `${ev.message}${ev.parking || ev.parkingAddress ? `\n\nParking:\n${[ev.parking, ev.parkingAddress].filter(Boolean).join('\n')}` : ''}\n\n${here}`, location: `${ev.venue}, ${ev.address}` });
   document.querySelectorAll('.js-cal').forEach((btn) => { if (!isIOS) btn.setAttribute('download', 'invitation.ics'); });
   if (isAndroid) { $('#calHelp').hidden = false; $('#calGoogle').href = google; }
   if (inApp) $('#calHint').hidden = false;
