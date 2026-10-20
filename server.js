@@ -76,7 +76,7 @@ app.get('/api/admin/me', requireAdmin, (req, res) => res.json({ ok: true }));
 /* ---------- public ---------- */
 const publicEvent = (ev) => ({
   title: ev.title, hosts: ev.hosts, startsAt: ev.startsAt, tz: ev.tz, venue: ev.venue,
-  address: ev.address, mapUrl: ev.mapUrl, message: ev.message, dressCode: ev.dressCode,
+  address: ev.address, mapUrl: ev.mapUrl, message: ev.message, dressCode: ev.dressCode, parking: ev.parking, parkingAddress: ev.parkingAddress,
   durationHours: ev.durationHours, rsvpDeadline: ev.rsvpDeadline,
   image: mediaUrl(ev.image), video: mediaUrl(ev.video), music: mediaUrl(ev.music),
 });
@@ -146,7 +146,7 @@ app.get('/api/cron/reminders', wrap(async (req, res) => {
 app.put('/api/admin/event', requireAdmin, wrap(async (req, res) => {
   const b = req.body || {};
   const ev = await getEvent();
-  const str = { title: 120, hosts: 120, venue: 120, address: 200, mapUrl: 400, message: 1000, dressCode: 120, rsvpDeadline: 40, tz: 60, hostEmail: 120, confirmTemplate: 600, reminderTemplate: 600 };
+  const str = { title: 120, hosts: 120, venue: 120, address: 200, mapUrl: 400, message: 1000, dressCode: 120, parking: 160, parkingAddress: 200, rsvpDeadline: 40, tz: 60, hostEmail: 120, confirmTemplate: 600, reminderTemplate: 600 };
   for (const [k, max] of Object.entries(str)) if (k in b) ev[k] = clean(k.endsWith('Template') || k === 'message' ? String(b[k]).replace(/\r/g, '') : b[k], max) || (k.endsWith('Template') ? ev[k] : '');
   if (b.startsAt && !isNaN(new Date(b.startsAt))) ev.startsAt = new Date(b.startsAt).toISOString();
   if ('durationHours' in b) ev.durationHours = Math.min(24, Math.max(1, Number(b.durationHours) || 3));

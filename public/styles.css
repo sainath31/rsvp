@@ -71,6 +71,7 @@ body.entrance .bg{opacity:0}
 .details li{display:flex;gap:14px;align-items:flex-start}
 .details .ico{width:42px;height:42px;flex:none;border-radius:14px;display:grid;place-items:center;background:rgba(217,181,115,.12);border:1px solid rgba(217,181,115,.3)}
 .details b{display:block;font-weight:600;font-size:.98rem}
+.maplink{display:block;width:fit-content;margin-top:.4rem;color:var(--gold2);font-size:.84rem;text-decoration:underline;text-underline-offset:3px}
 .details small{color:var(--muted);font-size:.84rem}
 .actions{display:flex;gap:10px;margin-top:1.2rem}
 .actions .btn{padding:.8rem .6rem;font-size:.86rem;white-space:nowrap;min-height:46px}

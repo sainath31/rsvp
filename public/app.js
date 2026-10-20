@@ -95,6 +95,17 @@ function render() {
   $('#dTime').textContent = fmt({ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
   $('#dVenue').textContent = ev.venue;
   $('#dAddr').textContent = ev.address;
+  if (ev.parking || ev.parkingAddress) {
+    $('#dPark').textContent = [ev.parking, ev.parkingAddress].filter(Boolean).join(' · ');
+    $('#parkRow').hidden = false;
+    if (ev.parkingAddress) {
+      // Search with the city/state of the main address when the parking address does not include one.
+      const q = ev.parkingAddress.includes(',') ? ev.parkingAddress : `${ev.parkingAddress}${ev.address && ev.address.includes(',') ? ',' + ev.address.slice(ev.address.indexOf(',') + 1) : ''}`;
+      const apple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      $('#parkMap').href = apple ? `https://maps.apple.com/?daddr=${encodeURIComponent(q)}&dirflg=d` : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
+      $('#parkMap').hidden = false;
+    }
+  }
   if (ev.dressCode) { $('#dDress').textContent = ev.dressCode; $('#dressRow').hidden = false; }
   // Directions use the street address only (a venue name like "Our Home" matches nothing on a map).
   // iPhone/iPad -> Apple Maps; everything else -> Google Maps directions. A map link set in the dashboard wins.
@@ -197,7 +208,7 @@ function setupCalendar() {
   const start = new Date(ev.startsAt).getTime();
   const end = start + (Number(ev.durationHours) || 3) * 36e5;
   const here = location.href.split(/[?#]/)[0];
-  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(start)}/${z(end)}`, details: `${ev.message}\n\n${here}`, location: `${ev.venue}, ${ev.address}` });
+  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(start)}/${z(end)}`, details: `${ev.message}${ev.parking || ev.parkingAddress ? `\n\nParking: ${[ev.parking, ev.parkingAddress].filter(Boolean).join(', ')}` : ''}\n\n${here}`, location: `${ev.venue}, ${ev.address}` });
   document.querySelectorAll('.js-cal').forEach((btn) => { if (!isIOS) btn.setAttribute('download', 'invitation.ics'); });
   if (isAndroid) { $('#calHelp').hidden = false; $('#calGoogle').href = google; }
   if (inApp) $('#calHint').hidden = false;

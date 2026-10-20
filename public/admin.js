@@ -55,7 +55,7 @@ const toLocal = (iso) => { const d = new Date(iso); return new Date(d - d.getTim
 async function loadEvent() {
   ev = await api('api/admin/event');
   const f = $('#evForm');
-  for (const k of ['title', 'hosts', 'venue', 'address', 'mapUrl', 'dressCode', 'rsvpDeadline', 'message', 'durationHours']) f[k].value = ev[k] ?? '';
+  for (const k of ['title', 'hosts', 'venue', 'address', 'mapUrl', 'dressCode', 'parking', 'parkingAddress', 'rsvpDeadline', 'message', 'durationHours']) f[k].value = ev[k] ?? '';
   f.startsAt.value = toLocal(ev.startsAt);
   $('#dbWarn').hidden = ev.durable !== false;
   const noUp = ev.uploads === false;
@@ -71,7 +71,7 @@ async function loadEvent() {
 }
 $('#evForm').onsubmit = async (e) => {
   e.preventDefault(); const f = e.target;
-  const body = Object.fromEntries(['title', 'hosts', 'venue', 'address', 'mapUrl', 'dressCode', 'rsvpDeadline', 'message', 'durationHours'].map((k) => [k, f[k].value]));
+  const body = Object.fromEntries(['title', 'hosts', 'venue', 'address', 'mapUrl', 'dressCode', 'parking', 'parkingAddress', 'rsvpDeadline', 'message', 'durationHours'].map((k) => [k, f[k].value]));
   body.startsAt = f.startsAt.value ? new Date(f.startsAt.value).toISOString() : undefined;
   body.tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   try { await api('api/admin/event', { method: 'PUT', body: JSON.stringify(body) }); toast('Saved ✓'); loadEvent(); } catch (x) { toast(x.message); }
