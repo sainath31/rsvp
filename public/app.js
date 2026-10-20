@@ -219,9 +219,11 @@ function setupHostLogin() {
     e.preventDefault(); err.hidden = true;
     const go = $('#hostGo'); go.disabled = true; go.textContent = 'Signing in\u2026';
     try {
-      const r = await fetch('api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: form.password.value }) });
+      let r;
+      try { r = await fetch('api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: form.password.value }) }); }
+      catch { throw new Error('Could not reach the server. Check your connection and try again.'); }
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || 'Could not sign in');
+      if (!r.ok) throw new Error(j.error ? (j.detail ? `${j.error}: ${j.detail}` : j.error) : `Could not sign in (the server answered ${r.status}). ${r.status === 404 ? 'The server part of the site is not responding - open /healthz on this site to check.' : 'Open /healthz on this site, or check the hosting logs.'}`);
       location.href = 'admin.html';
     } catch (x) { err.textContent = x.message; err.hidden = false; form.password.select(); }
     go.disabled = false; go.textContent = 'Sign in';

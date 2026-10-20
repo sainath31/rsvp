@@ -120,6 +120,15 @@ const ck = (await call('http://localhost:4013', 'POST', '/api/admin/login', { bo
 r = await call('http://localhost:4013', 'GET', '/api/admin/guests', { cookie: ck }); ok('B3c and the session it creates is accepted', r.status === 200, r.text);
 await stop(A);
 
+// the real Vercel entry file serves the API (body parsing, cookies, JSON)
+A = start('tests/vercel-handler-runner.mjs', { VERCEL: '1', RUNNER_PORT: '4014', ADMIN_PASSWORD: PASS, SESSION_SECRET: SECRET, DATA_DIR: '/tmp/claude-0/ephemeral-d' }); ok('E0 api/[...path].js entry boots', await waitReady(A, 4014), A.out);
+r = await call('http://localhost:4014', 'GET', '/api/healthz'); ok('E1 entry file serves /api/healthz', r.status === 200 && r.json?.ok === true, r.text);
+r = await call('http://localhost:4014', 'POST', '/api/admin/login', { body: { password: 'nope' } }); ok('E2 wrong password through the entry file -> clean JSON 401 "Wrong password"', r.status === 401 && r.json?.error === 'Wrong password', r.text);
+r = await call('http://localhost:4014', 'POST', '/api/admin/login', { body: { password: PASS } }); ok('E3 right password through the entry file -> 200 + cookie', r.status === 200 && /sid=/.test(r.res.headers.get('set-cookie') || ''), r.text);
+r = await call('http://localhost:4014', 'POST', '/api/rsvp', { body: { name: 'Entry Test', status: 'no' } }); ok('E4 JSON body parsing works through the entry file (RSVP)', r.status === 200 && r.json?.ok, r.text);
+r = await call('http://localhost:4014', 'POST', '/api/admin/login', { raw: '{"password": ', headers: { 'Content-Type': 'application/json' } }); ok('E5 malformed JSON gets a JSON error, not a crash', r.status >= 400 && r.status < 600 && !!r.json?.error, r.status + ' ' + r.text.slice(0, 80));
+await stop(A);
+
 const nodeProd = (env) => start('server.js', { NODE_ENV: 'production', PORT: '4020', DATA_DIR: '/tmp/claude-0/prod-c', ...env });
 let C = nodeProd({}); await sleep(1200); ok('C1 production refuses to start without ADMIN_PASSWORD', C.exitCode === 1, C.out);
 C = nodeProd({ ADMIN_PASSWORD: 'short' }); await sleep(1200); ok('C2 production refuses to start with a weak password', C.exitCode === 1 && /at least 10/.test(C.out), C.out);
@@ -135,7 +144,7 @@ ok('D1 vercel.json CSP matches the server CSP', vj.headers[0].headers.find((x) =
 ok('D2 vercel.json cron path matches the route', vj.crons[0].path === '/api/cron/reminders');
 ok('D3 vercel.json is valid and serves public/ with admin/event/healthz rewrites', vj.outputDirectory === 'public' && ['/admin', '/event.ics', '/healthz'].every((s) => vj.rewrites.some((x) => x.source === s)));
 ok('D3b vercel.json forces the plain "Other" preset (Vercel would otherwise auto-detect Express and look for a single entry file)', vj.framework === null);
-ok('D4 Vercel entry file exists and re-exports the app', /export default app/.test(fs.readFileSync('api/[...path].js', 'utf8')));
+ok('D4 Vercel entry file exists, loads the app and reports startup failures as JSON', /import\('\.\.\/server\.js'\)/.test(fs.readFileSync('api/[...path].js', 'utf8')) && /failed to start/.test(fs.readFileSync('api/[...path].js', 'utf8')));
 const pj = JSON.parse(fs.readFileSync('package.json', 'utf8')); ok('D5 package.json pins Node 22 and has no WhatsApp leftovers', pj.engines.node === '22.x' && !/whatsapp/i.test(JSON.stringify(pj)));
 fs.copyFileSync('public/index.html', '/tmp/claude-0/index.backup.html');
 await new Promise((res) => { const p = spawn('node', ['scripts/prepare.mjs'], { env: { ...process.env, CI: '', VERCEL: '', SITE_URL: '', PUBLIC_URL: '' } }); p.on('exit', res); });

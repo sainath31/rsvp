@@ -39,6 +39,19 @@ ok('U5b after logout the icon asks for the password again', await p.evaluate(() 
 await p.tap('#hostClose'); await p.waitForTimeout(200); ok('U6 the X closes the box', await p.evaluate(() => document.querySelector('#hostModal').hidden));
 await p.tap('#hostBtn'); await p.waitForTimeout(300); await p.keyboard.press('Escape'); await p.waitForTimeout(200); ok('U6b Escape closes the box', await p.evaluate(() => document.querySelector('#hostModal').hidden));
 await p.tap('#hostBtn'); await p.waitForTimeout(300); await p.touchscreen.tap(20, 30); await p.waitForTimeout(200); ok('U6c tapping outside closes the box', await p.evaluate(() => document.querySelector('#hostModal').hidden));
+// the sign-in box explains a broken server instead of a vague message
+await open(); await p.route('**/api/admin/login', (r) => r.fulfill({ status: 404, contentType: 'text/html', body: '<h1>NOT_FOUND</h1>' }));
+await p.tap('#hostBtn'); await p.waitForTimeout(400); await p.fill('#hostForm input', 'whatever-password'); await p.tap('#hostGo'); await p.waitForTimeout(800);
+const e404 = await p.evaluate(() => document.querySelector('#hostErr').textContent);
+ok('U6d a missing server (404) is explained, with the status code and where to look', /404/.test(e404) && /healthz/.test(e404), e404);
+await p.route('**/api/admin/login', (r) => r.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'The server failed to start', detail: "Cannot find package 'express'" }) }));
+await p.fill('#hostForm input', 'whatever-password'); await p.tap('#hostGo'); await p.waitForTimeout(800);
+const e500 = await p.evaluate(() => document.querySelector('#hostErr').textContent);
+ok('U6e a server startup failure shows its reason', /failed to start/.test(e500) && /express/.test(e500), e500);
+await p.route('**/api/admin/login', (r) => r.abort());
+await p.fill('#hostForm input', 'whatever-password'); await p.tap('#hostGo'); await p.waitForTimeout(800);
+ok('U6f no connection is explained', /Could not reach the server/.test(await p.evaluate(() => document.querySelector('#hostErr').textContent)));
+await p.unroute('**/api/admin/login'); await p.tap('#hostClose');
 // rate limit
 const lim = await p.evaluate(async () => { const out = []; for (let i = 0; i < 9; i++) { const r = await fetch('api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'bad' + i }) }); out.push(r.status); } return out; });
 ok('U7 repeated wrong passwords get locked out (429)', lim.includes(429), JSON.stringify(lim));

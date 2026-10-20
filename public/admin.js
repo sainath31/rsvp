@@ -4,7 +4,7 @@ const api = async (url, opts = {}) => {
   const res = await fetch(url, { ...opts, headers: opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : undefined });
   if (res.status === 401 && !url.includes('login')) { showLogin(); throw new Error('Signed out'); }
   const j = res.headers.get('content-type')?.includes('json') ? await res.json() : {};
-  if (!res.ok) throw new Error(j.error || 'Request failed');
+  if (!res.ok) throw new Error(j.error ? (j.detail ? `${j.error}: ${j.detail}` : j.error) : `Request failed (the server answered ${res.status})`);
   return j;
 };
 const toast = (m) => { const t = Object.assign(document.createElement('div'), { className: 'toast', textContent: m }); document.body.append(t); setTimeout(() => t.remove(), 3200); };
