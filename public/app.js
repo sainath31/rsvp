@@ -149,6 +149,7 @@ function confetti() {
 }
 
 /* ---------- smoothness helpers ---------- */
+let heroGo = false; // the hero video stays on its first frame (empty pot) until the mist is clearing
 function setupMotion() {
   const hv = $('#heroVid'), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // 1. Scroll-reveal for the cards.
@@ -161,11 +162,11 @@ function setupMotion() {
   // 2. Only decode the hero video while it is on screen; restart it if the phone stalls it.
   let heroVisible = true, last = -1, stalls = 0;
   if ('IntersectionObserver' in window) {
-    new IntersectionObserver((es) => { heroVisible = es[0].isIntersecting; if (!reduce) { heroVisible ? hv.play().catch(() => {}) : hv.pause(); } }, { threshold: 0.05 }).observe($('.hero'));
+    new IntersectionObserver((es) => { heroVisible = es[0].isIntersecting; if (!reduce && heroGo) { heroVisible ? hv.play().catch(() => {}) : hv.pause(); } }, { threshold: 0.05 }).observe($('.hero'));
   }
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && heroVisible && !reduce) hv.play().catch(() => {}); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && heroVisible && !reduce && heroGo) hv.play().catch(() => {}); });
   setInterval(() => {
-    if ($('#app').hidden || document.hidden || !heroVisible || reduce) return;
+    if ($('#app').hidden || document.hidden || !heroVisible || reduce || !heroGo) return;
     if (hv.paused) { hv.play().catch(() => {}); return; }
     stalls = hv.currentTime === last ? stalls + 1 : 0;
     last = hv.currentTime;
@@ -203,24 +204,27 @@ function setupMotion() {
     playMusic();
 
     const startHero = () => {
+      heroGo = true;
       hv.currentTime = 0;
       const p = hv.play();
       if (p) p.catch(() => hv.addEventListener('canplay', () => hv.play().catch(() => {}), { once: true }));
     };
     let prepared = false, revealed = false;
-    // Start the invitation video underneath the mist, so it is already moving when the mist clears.
+    // The app is shown under the mist on the empty-pot first frame; the video only starts as the mist clears.
     const prepare = () => {
       if (prepared) return;
       prepared = true;
       $('#app').hidden = false;
       document.body.classList.remove('entrance');
-      if (!reduce) startHero();
+      hv.pause();
+      hv.currentTime = 0;
     };
     const reveal = () => {
       if (revealed) return;
       revealed = true;
       prepare();
       gate.classList.add('out');
+      if (!reduce) setTimeout(startHero, 700); // pot is visible first, then the babies peek out from behind it
       setTimeout(() => { idle.pause(); gate.remove(); }, 1900);
     };
     if (reduce) return reveal();
