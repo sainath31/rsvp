@@ -1,20 +1,27 @@
 const $ = (s) => document.querySelector(s);
 let ev;
 
-/* ---------- music: uploaded track, or a soft built-in synth melody ---------- */
+/* ---------- music: uploaded track, or a soft built-in synth melody ----------
+   Starts when the guest taps Open Invitation, fades out when they scroll down past the video,
+   fades back in when they scroll up to it. The music button turns it off (and back on) for good. */
 const audio = $('#audio');
-let ctx, synthTimer, muted = true, playing = false, usingFile = false; // music is off until the guest turns it on
+let ctx, master, synthTimer, usingFile = false;
+let muted = false;        // the guest turned it off with the button
+let musicStarted = false;      // set by the Open Invitation tap (browsers only allow sound after a tap)
+let inMusicZone = true;   // the video at the top of the page is on screen
+let override = false;     // the guest tapped the button to turn it on while scrolled away
+let playing = false;
+const VOL = 0.16, FILE_VOL = 0.7;
 
 function startSynth() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
-  ctx ||= new AC();
+  ctx = new AC();
   ctx.resume();
-  const master = ctx.createGain(); master.gain.value = 0.16; master.connect(ctx.destination);
+  master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination);
   const delay = ctx.createDelay(); delay.delayTime.value = 0.38;
   const fb = ctx.createGain(); fb.gain.value = 0.38;
   delay.connect(fb); fb.connect(delay); delay.connect(master);
-  ctx.master = master;
   const chords = [[261.63, 329.63, 392], [220, 261.63, 329.63], [174.61, 220, 261.63], [196, 246.94, 293.66]];
   const step = 0.42; let t = ctx.currentTime + 0.1, n = 0;
   const note = (f, at, dur, vol) => {
@@ -25,7 +32,7 @@ function startSynth() {
     o.connect(g); g.connect(master); g.connect(delay); o.start(at); o.stop(at + dur + 0.05);
   };
   const schedule = () => {
-    while (t < ctx.currentTime + 1.5) {
+    while (t < ctx.currentTime + 1.5) { // while the context is suspended its clock stands still, so nothing piles up
       const bar = Math.floor(n / 8) % chords.length, ch = chords[bar], i = n % 8;
       if (i === 0) note(ch[0] / 2, t, 3.2, 0.55);
       const seq = [0, 1, 2, 1, 2, 1, 0, 1][i];
@@ -35,32 +42,45 @@ function startSynth() {
   };
   schedule(); synthTimer = setInterval(schedule, 400);
 }
-function stopSynth() { clearInterval(synthTimer); synthTimer = null; if (ctx) ctx.suspend(); }
 
-async function playMusic() {
-  if (muted) return;
-  try {
-    if (usingFile) { await audio.play(); }
-    else if (!synthTimer) startSynth();
-    else ctx.resume();
+let fadeTimer;
+function fadeTo(target, ms, then) {
+  clearInterval(fadeTimer);
+  if (!usingFile && master) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setTargetAtTime(target, ctx.currentTime, ms / 3000); setTimeout(() => then && then(), ms); return; }
+  const from = audio.volume, steps = 12; let k = 0;
+  fadeTimer = setInterval(() => { k++; audio.volume = Math.min(1, Math.max(0, from + (target - from) * k / steps)); if (k >= steps) { clearInterval(fadeTimer); then && then(); } }, ms / steps);
+}
+
+// Decide whether music should be playing right now, and make it so.
+function applyMusic() {
+  const want = musicStarted && !muted && !document.hidden && (inMusicZone || override);
+  if (want && !playing) {
     playing = true;
-  } catch { playing = false; }
+    try {
+      if (usingFile) { audio.volume = 0; audio.play().then(() => fadeTo(FILE_VOL, 700)).catch(() => { playing = false; syncMute(); }); }
+      else { if (!ctx) startSynth(); else ctx.resume(); fadeTo(VOL, 700); }
+    } catch { playing = false; }
+  } else if (!want && playing) {
+    playing = false;
+    fadeTo(0, 500, () => { if (playing) return; usingFile ? audio.pause() : ctx && ctx.suspend(); });
+  }
   syncMute();
 }
-function pauseMusic() { usingFile ? audio.pause() : stopSynth(); playing = false; syncMute(); }
 function syncMute() {
   const b = $('#mute');
   b.classList.toggle('off', muted);
   b.setAttribute('aria-label', muted ? 'Turn music on' : 'Turn music off');
   b.title = muted ? 'Turn music on' : 'Turn music off';
-  b.classList.toggle('on', playing && !muted);
+  b.classList.toggle('on', playing);
 }
-$('#mute').onclick = () => { muted = !muted; muted ? pauseMusic() : playMusic(); };
-let resume = false;
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && playing) { resume = true; pauseMusic(); }
-  else if (!document.hidden && resume && !muted) { resume = false; playMusic(); }
-});
+$('#mute').onclick = () => {
+  muted = !muted;
+  override = !muted && !inMusicZone; // turning it on while scrolled away is honoured
+  musicStarted = true;
+  applyMusic();
+};
+document.addEventListener('visibilitychange', applyMusic);
+function setMusicZone(visible) { if (visible === inMusicZone) return; inMusicZone = visible; if (visible) override = false; applyMusic(); }
 
 /* ---------- render event ---------- */
 const fmt = (o) => new Intl.DateTimeFormat('en-US', { timeZone: ev.tz, ...o }).format(new Date(ev.startsAt));
@@ -161,36 +181,21 @@ function confetti() {
 
 /* ---------- add to calendar: one button that does the right thing on each device ---------- */
 //  iPhone/iPad : opens Apple's native "Add to Calendar" sheet (the .ics is served inline)
-//  Android     : opens the phone's calendar app with the event pre-filled (falls back to Google Calendar in the browser)
+//  Android     : downloads the .ics; tapping "Open" adds it to the phone's own calendar (Samsung, Google, ...).
+//                Websites cannot launch the calendar app directly, so this is the reliable route.
 //  Desktop     : downloads the .ics calendar file
 function setupCalendar() {
   const ua = navigator.userAgent;
-  const touch = navigator.maxTouchPoints > 1;
-  const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && touch);
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isAndroid = /Android/.test(ua);
   const inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|Twitter|MicroMessenger|; wv\)/.test(ua);
   const z = (d) => new Date(d).toISOString().replace(/[-:]|\.\d+/g, '');
   const start = new Date(ev.startsAt).getTime();
   const end = start + (Number(ev.durationHours) || 3) * 36e5;
   const here = location.href.split(/[?#]/)[0];
-  const where = `${ev.venue}, ${ev.address}`, about = `${ev.message}\n\n${here}`;
-  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(start)}/${z(end)}`, details: about, location: where });
-  const e = encodeURIComponent;
-  const androidIntent = `intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.item/event;S.title=${e(ev.title)};S.description=${e(about)};S.eventLocation=${e(where)};l.beginTime=${start};l.endTime=${end};B.allDay=false;end`;
-
-  document.querySelectorAll('.js-cal').forEach((btn) => {
-    if (!isIOS && !isAndroid) btn.setAttribute('download', 'invitation.ics'); // desktop: save the calendar file
-    if (isAndroid) {
-      btn.addEventListener('click', (ev2) => {
-        ev2.preventDefault();
-        const a = document.createElement('a'); a.href = androidIntent; document.body.append(a); a.click(); a.remove();
-        // If no calendar app took over (page still visible shortly after), use Google Calendar in the browser.
-        let left = false; const mark = () => { left = true; };
-        document.addEventListener('visibilitychange', mark, { once: true }); addEventListener('pagehide', mark, { once: true });
-        setTimeout(() => { if (!left && !document.hidden) window.open(google, '_blank', 'noopener'); }, 1600);
-      });
-    }
-  });
+  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(start)}/${z(end)}`, details: `${ev.message}\n\n${here}`, location: `${ev.venue}, ${ev.address}` });
+  document.querySelectorAll('.js-cal').forEach((btn) => { if (!isIOS) btn.setAttribute('download', 'invitation.ics'); });
+  if (isAndroid) { $('#calHelp').hidden = false; $('#calGoogle').href = google; }
   if (inApp) $('#calHint').hidden = false;
   $('#copyLink').onclick = async () => { try { await navigator.clipboard.writeText(here); $('#copyLink').textContent = 'link copied'; } catch { prompt('Copy this link', here); } };
 }
@@ -215,6 +220,7 @@ function setupMotion() {
   // 2. Only decode the hero video while it is on screen; restart it if the phone stalls it.
   let heroVisible = true, last = -1, stalls = 0;
   if ('IntersectionObserver' in window) {
+    new IntersectionObserver((es) => { if (!$('#app').hidden) setMusicZone(es[0].intersectionRatio >= 0.35); }, { threshold: [0, 0.2, 0.35, 0.5, 1] }).observe($('.hero'));
     new IntersectionObserver((es) => { heroVisible = es[0].isIntersecting; if (!reduce && heroGo) { heroVisible ? hv.play().catch(() => {}) : hv.pause(); } }, { threshold: 0.05 }).observe($('.hero'));
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && heroVisible && !reduce && heroGo) hv.play().catch(() => {}); });
@@ -262,6 +268,7 @@ function debugPanel() {
     opened = true;
     const gate = $('#gate'), swirl = $('#gateSwirl'), idle = $('#gateIdle'), hv = $('#heroVid');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    musicStarted = true; applyMusic(); // music starts with the tap (browsers only allow sound after one)
     // Unlock the hero video inside this tap: phones only let video start later if it was started by a user gesture.
     try { hv.muted = true; const pp = hv.play(); if (pp) pp.then(() => { if (!heroGo) { hv.pause(); hv.currentTime = 0; } }).catch(() => {}); } catch {}
 

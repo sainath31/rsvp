@@ -1,6 +1,6 @@
 # RSVP – gender reveal invitation
 
-Features: opening screen with a smoke-swirl reveal, optional background music (off by default; guests turn it on with the music button; uploaded track or built-in melody), invitation photo upload,
+Features: opening screen with a smoke-swirl reveal, background music (starts when a guest opens the invitation, pauses while they scroll away from the video, music button to turn it off; uploaded track or built-in melody), invitation photo upload,
 RSVP with name / adults / children / email, host-only dashboard (`/admin`, password protected),
 email confirmations + automatic reminders (e.g. 7 and 1 days before), one-tap Add to Calendar (iPhone, Android and desktop), CSV export.
 
