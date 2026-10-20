@@ -110,6 +110,8 @@ input[type=text],input[type=tel],input:not([type]),textarea,input[name]{font:inh
 .mute.off{color:var(--muted);text-decoration:line-through}
 .mute.on{border-color:rgba(217,181,115,.6)}
 
+.note{font-size:.8rem;color:var(--muted);margin:.9rem 0 0;text-align:center}
+.linkbtn{background:none;border:0;padding:0;color:var(--gold2);font:inherit;text-decoration:underline;cursor:pointer}
 /* scroll reveal */
 .rv{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease}
 .rv.in{opacity:1;transform:none}

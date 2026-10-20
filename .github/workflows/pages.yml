@@ -18,6 +18,8 @@ jobs:
       url: ${{ steps.d.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Generate calendar file for the static preview
+        run: node scripts/gen-ics.mjs public/event.ics
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -79,8 +79,7 @@ function render() {
   const map = ev.mapUrl || (ev.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.venue + ' ' + ev.address)}` : '');
   if (map) { $('#mapBtn').href = map; $('#mapBtn').hidden = false; }
   if (ev.rsvpDeadline) $('#deadline').textContent = `Kindly reply by ${new Date(ev.rsvpDeadline + 'T12:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.`;
-  const e = new Date(new Date(ev.startsAt).getTime() + 36e5 * 3), z = (d) => new Date(d).toISOString().replace(/[-:]|\.\d+/g, '');
-  $('#gcal').href = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(ev.startsAt)}/${z(e)}`, details: ev.message, location: `${ev.venue}, ${ev.address}` });
+  setupCalendar();
   if (ev.image) { $('#pic').src = ev.image; $('#picCard').hidden = false; }
   const vid = $('#heroVid');
   // Pick one playable file explicitly (more reliable across phone browsers than <source> children).
@@ -152,6 +151,27 @@ function confetti() {
     ps.forEach((p) => { p.vy += .35; p.x += p.vx; p.y += p.vy; p.r += .2; g.fillStyle = p.c; g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * .6); g.restore(); });
     if (++f < 130) requestAnimationFrame(loop); else c.remove();
   })();
+}
+
+/* ---------- add to calendar: works on iPhone, Android and desktop ---------- */
+function setupCalendar() {
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
+  const inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|Twitter|MicroMessenger|; wv\)/.test(ua);
+  const z = (d) => new Date(d).toISOString().replace(/[-:]|\.\d+/g, '');
+  const end = new Date(new Date(ev.startsAt).getTime() + (Number(ev.durationHours) || 3) * 36e5);
+  const here = location.href.split(/[?#]/)[0];
+  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(ev.startsAt)}/${z(end)}`, details: `${ev.message}\n\n${here}`, location: `${ev.venue}, ${ev.address}` });
+  const a = $('#calA'), b = $('#calB');
+  const setGoogle = (el, label) => { el.textContent = label; el.href = google; el.target = '_blank'; el.rel = 'noopener'; el.removeAttribute('download'); };
+  const setIcs = (el, label) => { el.textContent = label; el.href = 'event.ics'; el.removeAttribute('target'); }; // no "download" attribute: iPhone then opens its Add to Calendar sheet
+  if (isIOS) { setIcs(a, 'Apple Calendar'); setGoogle(b, 'Google Calendar'); }
+  else if (isAndroid) { setGoogle(a, 'Google Calendar'); setIcs(b, 'Other calendar'); }
+  else { setGoogle(a, 'Google Calendar'); setIcs(b, /Mac/.test(navigator.platform) ? 'Apple Calendar' : 'Calendar file'); }
+  a.classList.replace('btn-ghost', 'btn-gold');
+  if (inApp) $('#calHint').hidden = false;
+  $('#copyLink').onclick = async () => { try { await navigator.clipboard.writeText(here); $('#copyLink').textContent = 'link copied'; } catch { prompt('Copy this link', here); } };
 }
 
 /* ---------- smoothness helpers ---------- */

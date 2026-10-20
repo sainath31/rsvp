@@ -71,7 +71,7 @@ app.get('/api/admin/me', requireAdmin, (req, res) => res.json({ ok: true, whatsa
 const publicEvent = (ev) => ({
   title: ev.title, hosts: ev.hosts, startsAt: ev.startsAt, tz: ev.tz, venue: ev.venue,
   address: ev.address, mapUrl: ev.mapUrl, message: ev.message, dressCode: ev.dressCode,
-  rsvpDeadline: ev.rsvpDeadline, image: ev.image ? `/media/${ev.image}` : '', video: ev.video ? `/media/${ev.video}` : '',
+  durationHours: ev.durationHours, rsvpDeadline: ev.rsvpDeadline, image: ev.image ? `/media/${ev.image}` : '', video: ev.video ? `/media/${ev.video}` : '',
   music: ev.music ? `/media/${ev.music}` : '',
 });
 
@@ -123,9 +123,10 @@ app.post('/api/rsvp', async (req, res) => {
 });
 
 app.get('/event.ics', (req, res) => {
-  res.type('text/calendar').set('Content-Disposition', 'attachment; filename="invitation.ics"').send(buildIcs(getDb().event));
+  // inline (not attachment) lets iPhone Safari open its "Add to Calendar" sheet directly; Android downloads it.
+  res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'inline; filename="invitation.ics"', 'Cache-Control': 'no-cache' }).send(buildIcs(getDb().event, baseUrl(req)));
 });
-app.get('/api/calendar', (req, res) => res.json({ google: googleCalUrl(getDb().event) }));
+app.get('/api/calendar', (req, res) => res.json({ google: googleCalUrl(getDb().event, baseUrl(req)) }));
 
 app.use('/media', express.static(UPLOAD_DIR, { maxAge: '1h', index: false, setHeaders: (r) => r.set('Content-Disposition', 'inline') }));
 

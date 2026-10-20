@@ -12,7 +12,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preload" href="fonts/great-vibes-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=30">
+<link rel="stylesheet" href="styles.css?v=32">
 </head>
 <body class="entrance">
 <div class="bg" aria-hidden="true"></div>
@@ -58,9 +58,10 @@
         <li id="dressRow" hidden><span class="ico">&#10024;</span><div><b>Dress code</b><small id="dDress"></small></div></li>
       </ul>
       <div class="actions">
-        <a class="btn btn-ghost" id="gcal" target="_blank" rel="noopener">Google Calendar</a>
-        <a class="btn btn-ghost" href="event.ics">Apple / Outlook</a>
+        <a class="btn btn-ghost" id="calA" target="_blank" rel="noopener">Google Calendar</a>
+        <a class="btn btn-ghost" id="calB" href="event.ics">Apple Calendar</a>
       </div>
+      <p class="note" id="calHint" hidden>Calendar buttons can be blocked inside chat apps. Open this page in Safari or Chrome, or <button type="button" class="linkbtn" id="copyLink">copy the link</button>.</p>
       <div class="actions" style="margin-top:10px">
         <a class="btn btn-ghost" id="mapBtn" target="_blank" rel="noopener" hidden>Directions</a>
       </div>
@@ -106,14 +107,14 @@
       </div>
     </section>
 
-    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v30 &middot; Oct 31</small></footer>
+    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v32 &middot; Oct 31</small></footer>
   </div>
 </main>
 
 <button id="rsvpFab" class="fab" hidden>RSVP now</button>
 <button id="mute" class="mute" aria-label="Toggle music" hidden>&#9835;</button>
 <audio id="audio" loop preload="none" playsinline></audio>
-<script src="demo.js?v=30"></script>
-<script src="app.js?v=30"></script>
+<script src="demo.js?v=32"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>
