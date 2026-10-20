@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <title>Host Dashboard</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=34">
 <style>
 body{padding-bottom:calc(84px + var(--safe-b))}
 .wrap{max-width:720px;margin:0 auto;padding:calc(20px + var(--safe-t)) 16px}
@@ -116,18 +116,17 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
       <h2 class="display sm">Notifications</h2>
       <p class="note" id="waStatus"></p>
       <label class="field"><span>Your email <em>(get an email for every RSVP; defaults to the Gmail sender)</em></span><input name="hostEmail" type="email"></label>
-      <label class="field"><span>Your WhatsApp number <em>(get a ping for every RSVP)</em></span><input name="hostPhone" type="tel" placeholder="+1 555 123 4567"></label>
       <label class="field"><span>Send reminders this many days before <em>(comma separated)</em></span><input name="reminderDays" placeholder="7, 1"></label>
       <label class="field"><span>Confirmation message</span><textarea name="confirmTemplate" rows="3"></textarea></label>
       <label class="field"><span>Reminder message</span><textarea name="reminderTemplate" rows="3"></textarea></label>
       <p class="note">Placeholders: {name} {event} {status} {date} {venue} {when} {link}</p>
       <button class="btn btn-gold btn-block">Save</button>
       <div class="actions"><button type="button" class="btn btn-ghost" id="testWa">Send test to me</button><button type="button" class="btn btn-ghost" id="remindAll">Remind all now</button></div>
-      <p class="note">Reminders go out automatically by email (and WhatsApp if set up) to everyone who said yes/maybe. You can also message any guest from the Guests tab with one tap.</p>
+      <p class="note">Confirmations and reminders are sent by email to guests who gave an email address and said yes or maybe.</p>
     </form>
   </section>
 </div>
-<script src="demo.js?v=32"></script>
-<script src="admin.js?v=32"></script>
+<script src="demo.js?v=34"></script>
+<script src="admin.js?v=34"></script>
 </body>
 </html>

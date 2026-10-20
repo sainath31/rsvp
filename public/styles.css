@@ -22,6 +22,7 @@ body.entrance .bg{opacity:0}
 .btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.6}
 .btn-gold{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#2a2008;box-shadow:0 8px 28px rgba(217,181,115,.28)}
+.actions .btn-gold{flex:1}
 .btn-ghost{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--line);flex:1}
 .btn-block{width:100%;margin-top:1rem}
 

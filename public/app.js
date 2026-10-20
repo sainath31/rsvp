@@ -113,24 +113,24 @@ document.querySelectorAll('.stepper').forEach((el) => {
 });
 form.addEventListener('change', () => { const no = form.status.value === 'no'; $('#counts').hidden = no; $('#guessBox').hidden = no; });
 
-try { const s = JSON.parse(localStorage.getItem('rsvp') || 'null'); if (s) { form.name.value = s.name || ''; form.phone.value = s.phone || ''; form.email.value = s.email || ''; } } catch {}
+try { const s = JSON.parse(localStorage.getItem('rsvp') || 'null'); if (s) { form.name.value = s.name || ''; form.email.value = s.email || ''; } } catch {}
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const err = $('#err'), btn = $('#submit');
   err.hidden = true;
   if (!form.name.value.trim()) { err.textContent = 'Please enter your name.'; err.hidden = false; form.name.focus(); return; }
-  const body = { name: form.name.value, phone: form.phone.value, email: form.email.value, note: form.note.value, status: form.status.value, guess: form.guess.value, adults: counts.adults, children: counts.children };
+  const body = { name: form.name.value, email: form.email.value, note: form.note.value, status: form.status.value, guess: form.guess.value, adults: counts.adults, children: counts.children };
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
     const res = await fetch('api/rsvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await res.json();
     if (!res.ok) throw new Error(j.error || 'Something went wrong');
-    try { localStorage.setItem('rsvp', JSON.stringify({ name: body.name, phone: body.phone, email: body.email })); } catch {}
+    try { localStorage.setItem('rsvp', JSON.stringify({ name: body.name, email: body.email })); } catch {}
     const first = body.name.trim().split(/\s+/)[0];
     $('#doneTitle').textContent = body.status === 'no' ? `We'll miss you, ${first}` : `See you there, ${first}!${body.guess ? (body.guess === 'boy' ? ' \uD83D\uDC99' : ' \uD83D\uDC97') : ''}`;
     $('#doneText').textContent = body.status === 'no' ? 'Thank you for letting us know.'
-      : `We've got ${j.adults} adult${j.adults === 1 ? '' : 's'}${j.children ? ` and ${j.children} child${j.children === 1 ? '' : 'ren'}` : ''} down.` + ((body.phone || body.email) ? ' A confirmation is on its way, and we’ll remind you as the day gets closer.' : '');
+      : `We've got ${j.adults} adult${j.adults === 1 ? '' : 's'}${j.children ? ` and ${j.children} child${j.children === 1 ? '' : 'ren'}` : ''} down.` + (body.email ? ' A confirmation is on its way, and we’ll remind you as the day gets closer.' : '');
     form.hidden = true; $('#done').hidden = false; $('#rsvp h2').hidden = true; $('#deadline').hidden = true;
     if (body.status !== 'no') confetti();
   } catch (x) { err.textContent = x.message; err.hidden = false; }
@@ -153,23 +153,38 @@ function confetti() {
   })();
 }
 
-/* ---------- add to calendar: works on iPhone, Android and desktop ---------- */
+/* ---------- add to calendar: one button that does the right thing on each device ---------- */
+//  iPhone/iPad : opens Apple's native "Add to Calendar" sheet (the .ics is served inline)
+//  Android     : opens the phone's calendar app with the event pre-filled (falls back to Google Calendar in the browser)
+//  Desktop     : downloads the .ics calendar file
 function setupCalendar() {
   const ua = navigator.userAgent;
-  const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const touch = navigator.maxTouchPoints > 1;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && touch);
   const isAndroid = /Android/.test(ua);
   const inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|Twitter|MicroMessenger|; wv\)/.test(ua);
   const z = (d) => new Date(d).toISOString().replace(/[-:]|\.\d+/g, '');
-  const end = new Date(new Date(ev.startsAt).getTime() + (Number(ev.durationHours) || 3) * 36e5);
+  const start = new Date(ev.startsAt).getTime();
+  const end = start + (Number(ev.durationHours) || 3) * 36e5;
   const here = location.href.split(/[?#]/)[0];
-  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(ev.startsAt)}/${z(end)}`, details: `${ev.message}\n\n${here}`, location: `${ev.venue}, ${ev.address}` });
-  const a = $('#calA'), b = $('#calB');
-  const setGoogle = (el, label) => { el.textContent = label; el.href = google; el.target = '_blank'; el.rel = 'noopener'; el.removeAttribute('download'); };
-  const setIcs = (el, label) => { el.textContent = label; el.href = 'event.ics'; el.removeAttribute('target'); }; // no "download" attribute: iPhone then opens its Add to Calendar sheet
-  if (isIOS) { setIcs(a, 'Apple Calendar'); setGoogle(b, 'Google Calendar'); }
-  else if (isAndroid) { setGoogle(a, 'Google Calendar'); setIcs(b, 'Other calendar'); }
-  else { setGoogle(a, 'Google Calendar'); setIcs(b, /Mac/.test(navigator.platform) ? 'Apple Calendar' : 'Calendar file'); }
-  a.classList.replace('btn-ghost', 'btn-gold');
+  const where = `${ev.venue}, ${ev.address}`, about = `${ev.message}\n\n${here}`;
+  const google = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: ev.title, dates: `${z(start)}/${z(end)}`, details: about, location: where });
+  const e = encodeURIComponent;
+  const androidIntent = `intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.item/event;S.title=${e(ev.title)};S.description=${e(about)};S.eventLocation=${e(where)};l.beginTime=${start};l.endTime=${end};B.allDay=false;end`;
+
+  document.querySelectorAll('.js-cal').forEach((btn) => {
+    if (!isIOS && !isAndroid) btn.setAttribute('download', 'invitation.ics'); // desktop: save the calendar file
+    if (isAndroid) {
+      btn.addEventListener('click', (ev2) => {
+        ev2.preventDefault();
+        const a = document.createElement('a'); a.href = androidIntent; document.body.append(a); a.click(); a.remove();
+        // If no calendar app took over (page still visible shortly after), use Google Calendar in the browser.
+        let left = false; const mark = () => { left = true; };
+        document.addEventListener('visibilitychange', mark, { once: true }); addEventListener('pagehide', mark, { once: true });
+        setTimeout(() => { if (!left && !document.hidden) window.open(google, '_blank', 'noopener'); }, 1600);
+      });
+    }
+  });
   if (inApp) $('#calHint').hidden = false;
   $('#copyLink').onclick = async () => { try { await navigator.clipboard.writeText(here); $('#copyLink').textContent = 'link copied'; } catch { prompt('Copy this link', here); } };
 }

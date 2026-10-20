@@ -12,7 +12,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preload" href="fonts/great-vibes-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=34">
 </head>
 <body class="entrance">
 <div class="bg" aria-hidden="true"></div>
@@ -58,8 +58,7 @@
         <li id="dressRow" hidden><span class="ico">&#10024;</span><div><b>Dress code</b><small id="dDress"></small></div></li>
       </ul>
       <div class="actions">
-        <a class="btn btn-ghost" id="calA" target="_blank" rel="noopener">Google Calendar</a>
-        <a class="btn btn-ghost" id="calB" href="event.ics">Apple Calendar</a>
+        <a class="btn btn-gold js-cal" id="calBtn" href="event.ics">&#128197; Add to Calendar</a>
       </div>
       <p class="note" id="calHint" hidden>Calendar buttons can be blocked inside chat apps. Open this page in Safari or Chrome, or <button type="button" class="linkbtn" id="copyLink">copy the link</button>.</p>
       <div class="actions" style="margin-top:10px">
@@ -90,8 +89,6 @@
 
         <label class="field"><span>Email <em>(for confirmation &amp; reminders)</em></span>
           <input name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" maxlength="120"></label>
-        <label class="field"><span>WhatsApp number <em>(optional)</em></span>
-          <input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+1 555 123 4567" maxlength="30"></label>
         <label class="field"><span>Message to the hosts <em>(optional)</em></span>
           <textarea name="note" rows="2" maxlength="300" placeholder="Dietary needs, wishes&hellip;"></textarea></label>
 
@@ -103,18 +100,18 @@
         <div class="check">&#10003;</div>
         <h2 class="display sm" id="doneTitle">Thank you!</h2>
         <p class="muted" id="doneText"></p>
-        <div class="actions"><a class="btn btn-ghost" href="event.ics">Add to calendar</a><button class="btn btn-ghost" id="editAgain">Edit response</button></div>
+        <div class="actions"><a class="btn btn-ghost js-cal" href="event.ics">Add to calendar</a><button class="btn btn-ghost" id="editAgain">Edit response</button></div>
       </div>
     </section>
 
-    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v32 &middot; Oct 31</small></footer>
+    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v34 &middot; Oct 31</small></footer>
   </div>
 </main>
 
 <button id="rsvpFab" class="fab" hidden>RSVP now</button>
 <button id="mute" class="mute" aria-label="Toggle music" hidden>&#9835;</button>
 <audio id="audio" loop preload="none" playsinline></audio>
-<script src="demo.js?v=32"></script>
-<script src="app.js?v=32"></script>
+<script src="demo.js?v=34"></script>
+<script src="app.js?v=34"></script>
 </body>
 </html>

@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import multer from 'multer';
 import { getDb, save, UPLOAD_DIR } from './lib/store.js';
-import { sendWhatsApp, isConfigured, normalizePhone } from './lib/whatsapp.js';
 import { sendMail, isMailConfigured, validEmail } from './lib/mail.js';
 import { notifyGuest, channelsConfigured } from './lib/notify.js';
 import { render, fmtDate, buildIcs, googleCalUrl } from './lib/messages.js';
@@ -65,7 +64,7 @@ app.post('/api/admin/logout', (req, res) => {
   res.set('Set-Cookie', 'sid=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
   res.json({ ok: true });
 });
-app.get('/api/admin/me', requireAdmin, (req, res) => res.json({ ok: true, whatsapp: isConfigured() }));
+app.get('/api/admin/me', requireAdmin, (req, res) => res.json({ ok: true }));
 
 /* ---------- public ---------- */
 const publicEvent = (ev) => ({
@@ -95,30 +94,25 @@ app.post('/api/rsvp', async (req, res) => {
   if (status !== 'no' && adults < 1) adults = 1;
   if (status === 'no') adults = 0;
   const guess = status === 'no' ? '' : ['boy', 'girl'].includes(b.guess) ? b.guess : '';
-  const phoneRaw = clean(b.phone, 30);
-  const phone = normalizePhone(phoneRaw);
-  if (phoneRaw && !phone) return res.status(400).json({ error: 'Please enter a valid WhatsApp number with country code.' });
 
   const email = clean(b.email, 120).toLowerCase();
   if (email && !validEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
 
   const db = getDb();
-  // Same person re-submitting (same phone, or same name without phone) updates their RSVP.
-  let guest = db.guests.find((g) => (phone && g.phone === phone) || (email && g.email === email) || (!phone && !email && !g.phone && !g.email && g.name.toLowerCase() === name.toLowerCase()));
+  // Same person re-submitting (same email, or same name when no email was given) updates their RSVP.
+  let guest = db.guests.find((g) => (email && g.email === email) || (!email && !g.email && g.name.toLowerCase() === name.toLowerCase()));
   const isNew = !guest;
   if (isNew) { guest = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), reminders: {} }; db.guests.push(guest); }
-  Object.assign(guest, { name, phone, email, guess, status, adults, children, note: clean(b.note, 300), updatedAt: new Date().toISOString() });
+  Object.assign(guest, { name, email, guess, status, adults, children, note: clean(b.note, 300), updatedAt: new Date().toISOString() });
   await save();
 
   const link = baseUrl(req);
   const label = { yes: 'attending', no: 'not attending', maybe: 'maybe' }[status];
   // Fire-and-forget notifications; failures never block the guest.
   const summary = `New RSVP: ${name} \u2013 ${label}${guess ? ` \u2013 Team ${guess === 'boy' ? 'Boy' : 'Girl'}` : ''}${status !== 'no' ? ` (${adults} adult${adults === 1 ? '' : 's'}, ${children} child${children === 1 ? '' : 'ren'})` : ''}${guest.note ? `\nNote: ${guest.note}` : ''}`;
-  const host = normalizePhone(db.event.hostPhone);
-  if (host) sendWhatsApp(host, '\uD83D\uDCEC ' + summary).then((r) => !r.ok && console.warn('[host wa]', r.error));
   const hostEmail = db.event.hostEmail || process.env.GMAIL_USER;
   if (hostEmail) sendMail(hostEmail, `RSVP: ${name} \u2013 ${label}`, summary, link + '/admin').then((r) => !r.ok && console.warn('[host mail]', r.error));
-  if (phone || email) notifyGuest(guest, `Your RSVP: ${db.event.title}`, render(db.event.confirmTemplate, db.event, guest, link) + (status !== 'no' ? `\n\nAdd to calendar: ${googleCalUrl(db.event)}` : ''), link, status !== 'no' ? [{ filename: 'invitation.ics', content: buildIcs(db.event), contentType: 'text/calendar' }] : undefined).then((r) => !r.ok && console.warn('[confirm]', r.error));
+  if (email) notifyGuest(guest, `Your RSVP: ${db.event.title}`, render(db.event.confirmTemplate, db.event, guest, link) + (status !== 'no' ? `\n\nAdd to calendar: ${googleCalUrl(db.event, link)}` : ''), link, status !== 'no' ? [{ filename: 'invitation.ics', content: buildIcs(db.event, link), contentType: 'text/calendar' }] : undefined).then((r) => !r.ok && console.warn('[confirm]', r.error));
   res.json({ ok: true, updated: !isNew, status, adults, children });
 });
 
@@ -137,7 +131,6 @@ app.put('/api/admin/event', requireAdmin, async (req, res) => {
   const str = { title: 120, hosts: 120, venue: 120, address: 200, mapUrl: 400, message: 1000, dressCode: 120, rsvpDeadline: 40, tz: 60, hostEmail: 120, confirmTemplate: 600, reminderTemplate: 600 };
   for (const [k, max] of Object.entries(str)) if (k in b) ev[k] = clean(k.endsWith('Template') || k === 'message' ? String(b[k]).replace(/\r/g, '') : b[k], max) || (k.endsWith('Template') ? ev[k] : '');
   if (b.startsAt && !isNaN(new Date(b.startsAt))) ev.startsAt = new Date(b.startsAt).toISOString();
-  if ('hostPhone' in b) { ev.hostPhone = normalizePhone(b.hostPhone); }
   if ('durationHours' in b) ev.durationHours = Math.min(24, Math.max(1, Number(b.durationHours) || 3));
   if (Array.isArray(b.reminderDays)) ev.reminderDays = b.reminderDays.map(Number).filter((n) => n > 0 && n <= 90).slice(0, 5);
   if (ev.mapUrl && !/^https?:\/\//i.test(ev.mapUrl)) ev.mapUrl = '';
@@ -177,12 +170,9 @@ app.delete('/api/admin/upload/:kind', requireAdmin, async (req, res) => {
 });
 
 /* ---------- admin: guests (host-only) ---------- */
-app.get('/api/admin/event', requireAdmin, (req, res) => res.json({ ...getDb().event, imageUrl: getDb().event.image ? `/media/${getDb().event.image}` : '', videoUrl: getDb().event.video ? `/media/${getDb().event.video}` : '', musicUrl: getDb().event.music ? `/media/${getDb().event.music}` : '', link: baseUrl(req), whatsapp: isConfigured(), email: isMailConfigured() }));
+app.get('/api/admin/event', requireAdmin, (req, res) => res.json({ ...getDb().event, imageUrl: getDb().event.image ? `/media/${getDb().event.image}` : '', videoUrl: getDb().event.video ? `/media/${getDb().event.video}` : '', musicUrl: getDb().event.music ? `/media/${getDb().event.music}` : '', link: baseUrl(req), email: isMailConfigured() }));
 app.get('/api/admin/guests', requireAdmin, (req, res) => {
-  const ev = getDb().event;
-  const guests = [...getDb().guests].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((g) => ({
-    ...g, waLink: g.phone ? `https://wa.me/${g.phone.slice(1)}?text=${encodeURIComponent(render(ev.reminderTemplate, ev, g, baseUrl(req)))}` : '',
-  }));
+  const guests = [...getDb().guests].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   res.json({ guests });
 });
 app.delete('/api/admin/guests/:id', requireAdmin, async (req, res) => {
@@ -193,13 +183,13 @@ app.delete('/api/admin/guests/:id', requireAdmin, async (req, res) => {
 });
 app.get('/api/admin/guests.csv', requireAdmin, (req, res) => {
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""').replace(/^([=+\-@])/, "'$1")}"`;
-  const rows = [['Name', 'Phone', 'Email', 'Status', 'Adults', 'Children', 'Guess', 'Note', 'RSVP date'], ...getDb().guests.map((g) => [g.name, g.phone, g.email, g.status, g.adults, g.children, g.guess, g.note, g.createdAt])];
+  const rows = [['Name', 'Email', 'Status', 'Adults', 'Children', 'Guess', 'Note', 'RSVP date'], ...getDb().guests.map((g) => [g.name, g.email, g.status, g.adults, g.children, g.guess, g.note, g.createdAt])];
   res.type('text/csv').set('Content-Disposition', 'attachment; filename="guests.csv"').send(rows.map((r) => r.map(q).join(',')).join('\n'));
 });
 app.post('/api/admin/remind', requireAdmin, async (req, res) => {
-  if (!channelsConfigured()) return res.status(400).json({ error: 'Neither email nor WhatsApp is configured on the server.' });
+  if (!channelsConfigured()) return res.status(400).json({ error: 'Email is not configured on the server (set GMAIL_USER and GMAIL_APP_PASSWORD).' });
   const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
-  const targets = getDb().guests.filter((g) => (g.phone || g.email) && g.status !== 'no' && (!ids || ids.includes(g.id)));
+  const targets = getDb().guests.filter((g) => g.email && g.status !== 'no' && (!ids || ids.includes(g.id)));
   let sent = 0; const failed = [];
   for (const g of targets) {
     const r = await remindGuest(g, baseUrl(req));
@@ -207,8 +197,10 @@ app.post('/api/admin/remind', requireAdmin, async (req, res) => {
   }
   res.json({ ok: true, sent, failed });
 });
-app.post('/api/admin/test-whatsapp', requireAdmin, async (req, res) => {
-  const r = await sendWhatsApp(getDb().event.hostPhone, `✅ WhatsApp is connected for "${getDb().event.title}" (${fmtDate(getDb().event)}).`);
+app.post('/api/admin/test-email', requireAdmin, async (req, res) => {
+  const ev = getDb().event, to = ev.hostEmail || process.env.GMAIL_USER;
+  if (!to) return res.status(400).json({ error: 'Add your email address first.' });
+  const r = await sendMail(to, 'Test notification', `\u2705 Email is connected for "${ev.title}" (${fmtDate(ev)}).`);
   res.status(r.ok ? 200 : 400).json(r.ok ? { ok: true } : { error: r.error });
 });
 
@@ -223,6 +215,6 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`RSVP running on http://localhost:${PORT}  (admin: /admin)`);
-  console.log(`WhatsApp: ${isConfigured() ? 'enabled' : 'not configured'} | Email: ${isMailConfigured() ? 'enabled' : 'not configured'}`);
+  console.log(`Email: ${isMailConfigured() ? 'enabled' : 'not configured (set GMAIL_USER and GMAIL_APP_PASSWORD)'}`);
   startScheduler(process.env.PUBLIC_URL || `http://localhost:${PORT}`);
 });

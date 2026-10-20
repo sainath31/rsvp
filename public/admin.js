@@ -34,10 +34,10 @@ function renderGuests() {
   const label = { yes: 'Attending', no: 'Declined', maybe: 'Maybe' };
   $('#list').innerHTML = rows.length ? rows.map((g) => `
     <div class="card guest"><div class="h"><div><b>${esc(g.name)}</b>
-      <div class="meta">${g.status === 'no' ? 'Not attending' : `${g.adults} adult${g.adults === 1 ? '' : 's'}${g.children ? ` &middot; ${g.children} child${g.children === 1 ? '' : 'ren'}` : ''}`}${g.email ? ` &middot; ${esc(g.email)}` : ''}${g.phone ? ` &middot; ${esc(g.phone)}` : ''}</div></div>
+      <div class="meta">${g.status === 'no' ? 'Not attending' : `${g.adults} adult${g.adults === 1 ? '' : 's'}${g.children ? ` &middot; ${g.children} child${g.children === 1 ? '' : 'ren'}` : ''}`}${g.email ? ` &middot; ${esc(g.email)}` : ''}</div></div>
       <span class="badge ${g.status}">${g.guess ? (g.guess === 'boy' ? '\uD83D\uDC99 ' : '\uD83D\uDC97 ') : ''}${label[g.status]}</span></div>
       ${g.note ? `<div class="meta">&ldquo;${esc(g.note)}&rdquo;</div>` : ''}
-      <div class="g-act">${g.waLink ? `<a class="btn btn-ghost" target="_blank" rel="noopener" href="${esc(g.waLink)}">&#128172; WhatsApp</a>` : ''}<button class="btn btn-ghost" data-del="${esc(g.id)}">Remove</button></div></div>`).join('')
+      <div class="g-act"><button class="btn btn-ghost" data-del="${esc(g.id)}">Remove</button></div></div>`).join('')
     : '<p class="empty">No responses yet. Share your invitation link!</p>';
 }
 $('#filters').onclick = (e) => {
@@ -58,9 +58,9 @@ async function loadEvent() {
   for (const k of ['title', 'hosts', 'venue', 'address', 'mapUrl', 'dressCode', 'rsvpDeadline', 'message', 'durationHours']) f[k].value = ev[k] ?? '';
   f.startsAt.value = toLocal(ev.startsAt);
   const n = $('#ntForm');
-  n.hostPhone.value = ev.hostPhone; n.hostEmail.value = ev.hostEmail || ''; n.reminderDays.value = ev.reminderDays.join(', ');
+  n.hostEmail.value = ev.hostEmail || ''; n.reminderDays.value = ev.reminderDays.join(', ');
   n.confirmTemplate.value = ev.confirmTemplate; n.reminderTemplate.value = ev.reminderTemplate;
-  $('#waStatus').textContent = `Email (Gmail): ${ev.email ? 'connected \u2705' : 'not configured \u26A0'}  \u00b7  WhatsApp API: ${ev.whatsapp ? 'connected \u2705' : 'not configured'}. The one-tap WhatsApp buttons on each guest always work.`;
+  $('#waStatus').textContent = ev.email ? 'Email (Gmail) is connected \u2705' : 'Email is not set up on the server yet \u26A0 (see README: GMAIL_USER and GMAIL_APP_PASSWORD).';
   $('#imgPrev').style.backgroundImage = ev.imageUrl ? `url("${ev.imageUrl}")` : ''; $('#imgPrev').textContent = ev.imageUrl ? '' : 'No picture yet';
   $('#vidPrev').innerHTML = ev.videoUrl ? `<video controls muted playsinline src="${esc(ev.videoUrl)}" style="width:60%;border-radius:12px"></video>` : 'Built-in Krishna & Radha video';
   $('#musPrev').innerHTML = ev.musicUrl ? `<audio controls src="${esc(ev.musicUrl)}"></audio>` : 'Built-in melody';
@@ -74,7 +74,7 @@ $('#evForm').onsubmit = async (e) => {
 };
 $('#ntForm').onsubmit = async (e) => {
   e.preventDefault(); const f = e.target;
-  const body = { hostPhone: f.hostPhone.value, hostEmail: f.hostEmail.value, confirmTemplate: f.confirmTemplate.value, reminderTemplate: f.reminderTemplate.value,
+  const body = { hostEmail: f.hostEmail.value, confirmTemplate: f.confirmTemplate.value, reminderTemplate: f.reminderTemplate.value,
     reminderDays: f.reminderDays.value.split(/[,\s]+/).filter(Boolean).map(Number) };
   try { await api('api/admin/event', { method: 'PUT', body: JSON.stringify(body) }); toast('Saved ✓'); loadEvent(); } catch (x) { toast(x.message); }
 };
@@ -87,9 +87,9 @@ for (const [kind, input, del] of [['image', '#imgFile', '#imgDel'], ['video', '#
   };
   $(del).onclick = async () => { await api('api/admin/upload/' + kind, { method: 'DELETE' }); loadEvent(); };
 }
-$('#testWa').onclick = async () => { try { await api('api/admin/test-whatsapp', { method: 'POST' }); toast('Test sent ✓'); } catch (x) { toast(x.message); } };
+$('#testWa').onclick = async () => { try { await api('api/admin/test-email', { method: 'POST' }); toast('Test sent ✓'); } catch (x) { toast(x.message); } };
 $('#remindAll').onclick = async () => {
-  if (!confirm('Send a WhatsApp reminder to all attending/maybe guests now?')) return;
+  if (!confirm('Email a reminder to all attending/maybe guests now?')) return;
   try { const r = await api('api/admin/remind', { method: 'POST', body: JSON.stringify({}) }); toast(`Sent ${r.sent}${r.failed.length ? `, ${r.failed.length} failed` : ''}`); } catch (x) { toast(x.message); }
 };
 
