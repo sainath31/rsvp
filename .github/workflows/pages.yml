@@ -18,6 +18,10 @@ jobs:
       url: ${{ steps.d.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Put the site address into the link-preview tags
+        run: node scripts/prepare.mjs
+        env:
+          SITE_URL: https://sainath31.github.io/rsvp
       - name: Generate calendar file for the static preview
         run: node scripts/gen-ics.mjs public/event.ics
       - uses: actions/configure-pages@v5

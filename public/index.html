@@ -7,7 +7,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>You're Invited</title>
+<title>A Sweet Surprise – Mamatha Devi &amp; Sainath</title>
+<meta name="description" content="You're invited! Saturday, October 31, 2026 · 4:00 PM · Zephyrhills, FL">
+<meta name="robots" content="noindex,nofollow">
+<meta name="build" content="v40">
+<meta property="og:type" content="website">
+<meta property="og:title" content="A Sweet Surprise – Mamatha Devi &amp; Sainath">
+<meta property="og:description" content="You're invited! Saturday, October 31, 2026 · 4:00 PM · Zephyrhills, FL">
+<meta property="og:image" content="__SITE_URL__/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="__SITE_URL__/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -105,10 +116,20 @@
       </div>
     </section>
 
-    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v38 &middot; Oct 31</small></footer>
   </div>
 </main>
 
+<button id="hostBtn" class="mute host" aria-label="Host login" title="Host login" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.9-3.7 3.9-5.6 7.5-5.6s6.6 1.9 7.5 5.6"/></svg></button>
+<div id="hostModal" class="modal" hidden>
+  <form class="modal-card" id="hostForm" role="dialog" aria-modal="true" aria-labelledby="hostTitle">
+    <button type="button" class="modal-x" id="hostClose" aria-label="Close">&times;</button>
+    <h2 id="hostTitle" class="display sm">Host login</h2>
+    <p class="muted" style="text-align:center">Only the hosts can see the guest list.</p>
+    <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+    <p class="err" id="hostErr" role="alert" hidden></p>
+    <button class="btn btn-gold btn-block" id="hostGo" type="submit">Sign in</button>
+  </form>
+</div>
 <button id="rsvpFab" class="fab" hidden>RSVP now</button>
 <button id="mute" class="mute" aria-label="Toggle music" hidden>&#9835;</button>
 <audio id="audio" loop preload="none" playsinline></audio>

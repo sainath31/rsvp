@@ -204,6 +204,30 @@ function setupCalendar() {
   $('#copyLink').onclick = async () => { try { await navigator.clipboard.writeText(here); $('#copyLink').textContent = 'link copied'; } catch { prompt('Copy this link', here); } };
 }
 
+/* ---------- host login (profile icon, top right) ---------- */
+function setupHostLogin() {
+  const modal = $('#hostModal'), form = $('#hostForm'), err = $('#hostErr'), btn = $('#hostBtn');
+  const close = () => { modal.hidden = true; form.reset(); err.hidden = true; btn.focus(); };
+  btn.onclick = async () => {
+    try { const r = await fetch('api/admin/me'); if (r.ok) { location.href = 'admin.html'; return; } } catch {} // already signed in
+    modal.hidden = false; err.hidden = true; setTimeout(() => form.password.focus(), 50);
+  };
+  $('#hostClose').onclick = close;
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) close(); });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault(); err.hidden = true;
+    const go = $('#hostGo'); go.disabled = true; go.textContent = 'Signing in\u2026';
+    try {
+      const r = await fetch('api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: form.password.value }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Could not sign in');
+      location.href = 'admin.html';
+    } catch (x) { err.textContent = x.message; err.hidden = false; form.password.select(); }
+    go.disabled = false; go.textContent = 'Sign in';
+  });
+}
+
 /* ---------- smoothness helpers ---------- */
 const showFinalStill = () => { const i = $('#heroImg'); if (i && !i.src.includes('hero-final')) i.src = 'hero-final.jpg'; $('#heroVid').classList.remove('live'); };
 let heroGo = false; // the hero video stays on its first frame (empty pot) until the mist is clearing
@@ -253,7 +277,7 @@ function debugPanel() {
   Object.assign(d.style, { position: 'fixed', left: '6px', bottom: '6px', zIndex: 999, margin: 0, padding: '6px 8px', maxWidth: '92vw', font: '10px/1.35 monospace', color: '#9f9', background: 'rgba(0,0,0,.8)', borderRadius: '6px', whiteSpace: 'pre-wrap', pointerEvents: 'none' });
   document.body.append(d);
   const v = (el, n) => el ? `${n}: t=${el.currentTime.toFixed(1)} paused=${el.paused} ready=${el.readyState} net=${el.networkState} err=${el.error ? el.error.code : '-'} src=${(el.currentSrc || '').split('/').pop() || '(none)'}` : `${n}: (removed)`;
-  setInterval(() => { d.textContent = [v($('#heroVid'), 'hero'), `heroGo=${heroGo} live=${$('#heroVid').classList.contains('live')} still=${($('#heroImg').src || '').split('/').pop()}`, v($('#gateIdle'), 'idle'), v($('#gateSwirl'), 'swirl'), navigator.userAgent.replace(/\(.*?\)/, '').slice(0, 80)].join('\n'); }, 500);
+  setInterval(() => { d.textContent = [v($('#heroVid'), 'hero'), `heroGo=${heroGo} live=${$('#heroVid').classList.contains('live')} still=${($('#heroImg').src || '').split('/').pop()}`, v($('#gateIdle'), 'idle'), v($('#gateSwirl'), 'swirl'), `build ${document.querySelector('meta[name=build]')?.content}`, navigator.userAgent.replace(/\(.*?\)/, '').slice(0, 80)].join('\n'); }, 500);
 }
 
 /* ---------- boot ---------- */
@@ -261,8 +285,8 @@ function debugPanel() {
   try {
     ev = await (await fetch('api/event')).json();
   } catch { document.body.innerHTML = '<p style="padding:2rem">Unable to load the invitation. Please refresh.</p>'; return; }
-  render(); tick(); setInterval(tick, 1000); setupMotion();
-  $('#mute').hidden = false; syncMute();
+  render(); tick(); setInterval(tick, 1000); setupMotion(); setupHostLogin();
+  $('#mute').hidden = false; $('#hostBtn').hidden = false; syncMute();
   // Browsers only allow sound after a gesture; try silently first, the gate tap guarantees it.
   // Tap: music starts, the smoke swirls together, and the invitation appears through the mist.
   // Every step has a timer fallback, so a slow or blocked video can never leave the screen stuck.
