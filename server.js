@@ -15,7 +15,9 @@ import { securityHeaders, timingSafeEqualStr, issueSession, verifySession, sessi
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const IS_PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+// Trimmed: a stray space or newline pasted into the hosting settings must not lock you out.
+const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || '').trim();
+process.env.ADMIN_PASSWORD = ADMIN_PASSWORD;
 
 // The host password is set by you (ADMIN_PASSWORD). In production it must be a real one.
 let loginProblem = '';
@@ -39,7 +41,7 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 
 app.get(['/healthz', '/api/healthz'], wrap(async (req, res) => {
   await getEvent({ fresh: true }); // proves the storage is reachable
-  res.json({ ok: true, storage: storageKind, uploads: mediaMode, email: isMailConfigured(), hostLogin: !loginProblem });
+  res.json({ ok: true, storage: storageKind, uploads: mediaMode, email: isMailConfigured(), hostLogin: !loginProblem, ...(loginProblem ? { hostLoginProblem: loginProblem } : {}) });
 }));
 
 /* ---------- host login (password comes from ADMIN_PASSWORD; signed cookie, no server-side session store) ---------- */
@@ -49,13 +51,14 @@ function requireAdmin(req, res, next) {
   res.status(401).json({ error: 'Unauthorized' });
 }
 app.post('/api/admin/login', wrap(async (req, res) => {
-  if (loginProblem) return res.status(503).json({ error: 'Host login is not set up on this server yet.' });
+  if (loginProblem) return res.status(503).json({ error: `Host login is not set up: ${loginProblem}. Add it in your hosting settings and redeploy.` });
   const ip = req.ip;
   const a = attempts.get(ip) || { n: 0, t: Date.now() };
   if (Date.now() - a.t > 15 * 60_000) { a.n = 0; a.t = Date.now(); }
   if (a.n >= 8) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
-  if (!timingSafeEqualStr(String(req.body?.password || ''), ADMIN_PASSWORD)) {
+  if (!timingSafeEqualStr(String(req.body?.password || '').trim(), ADMIN_PASSWORD)) {
     a.n++; attempts.set(ip, a);
+    console.warn(`[login] wrong password (attempt ${a.n})`);
     await new Promise((r) => setTimeout(r, 500)); // slows down guessing even across several server instances
     return res.status(401).json({ error: 'Wrong password' });
   }

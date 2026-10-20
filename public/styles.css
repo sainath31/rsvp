@@ -131,7 +131,9 @@ input[type=text],input[type=tel],input:not([type]),textarea,input[name]{font:inh
 /* tablet / desktop: split layout */
 @media (min-width:900px){
   .app{max-width:1080px;display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:32px 24px;align-items:start}
-  .hero{position:sticky;top:32px;height:calc(100dvh - 64px);border-radius:32px}
+  /* Desktop: the picture box is exactly the video's tall 9:16 shape, sized to fit the window, so nothing is cropped. */
+  .hero{--hh:min(calc(100dvh - 64px), calc((min(100vw, 1080px) - 76px) / 2 * 16 / 9));position:sticky;top:32px;justify-self:center;height:var(--hh);width:calc(var(--hh) * 9 / 16);max-height:none;aspect-ratio:auto;border-radius:32px;container-type:inline-size}
+  .hero-text .script{font-size:clamp(2rem,12.4cqw,3.5rem)}
   .content{padding:0;margin:0}
   .gate-card{max-width:420px}
 }

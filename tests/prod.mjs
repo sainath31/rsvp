@@ -109,7 +109,16 @@ r = await call(bB, 'GET', '/healthz'); ok('B1b healthz says uploads: none', r.js
 r = await call(bB, 'GET', '/api/admin/event', { cookie: cB }); ok('B1c dashboard is told uploads are off', r.json?.uploads === false);
 await stop(A);
 A = start('tests/serverless-runner.mjs', { VERCEL: '1', RUNNER_PORT: '4012', ADMIN_PASSWORD: 'short', DATA_DIR: '/tmp/claude-0/ephemeral-b' }); await waitReady(A, 4012);
-r = await call('http://localhost:4012', 'POST', '/api/admin/login', { body: { password: 'short' } }); ok('B2 weak password in production: login stays disabled (503) even with the right text', r.status === 503, r.text); await stop(A);
+r = await call('http://localhost:4012', 'POST', '/api/admin/login', { body: { password: 'short' } }); ok('B2 weak password in production: login stays disabled (503) and says why', r.status === 503 && /at least 10 characters/.test(r.json?.error || ''), r.text);
+r = await call('http://localhost:4012', 'GET', '/healthz'); ok('B2b healthz explains why host login is off (no secrets)', r.json?.hostLogin === false && /at least 10/.test(r.json?.hostLoginProblem || '') && !/short/.test(r.text), r.text); await stop(A);
+
+// a password pasted with stray spaces / a newline still works, and typing it with spaces around it works too
+A = start('tests/serverless-runner.mjs', { VERCEL: '1', RUNNER_PORT: '4013', ADMIN_PASSWORD: ` ${PASS}\n`, SESSION_SECRET: SECRET, DATA_DIR: '/tmp/claude-0/ephemeral-c' }); await waitReady(A, 4013);
+r = await call('http://localhost:4013', 'POST', '/api/admin/login', { body: { password: PASS } }); ok('B3 password saved with stray spaces/newline in the host settings still logs in', r.status === 200, r.text);
+r = await call('http://localhost:4013', 'POST', '/api/admin/login', { body: { password: `  ${PASS} ` } }); ok('B3b typing it with spaces around it also works', r.status === 200, r.text);
+const ck = (await call('http://localhost:4013', 'POST', '/api/admin/login', { body: { password: PASS } })).res.headers.get('set-cookie').split(';')[0];
+r = await call('http://localhost:4013', 'GET', '/api/admin/guests', { cookie: ck }); ok('B3c and the session it creates is accepted', r.status === 200, r.text);
+await stop(A);
 
 const nodeProd = (env) => start('server.js', { NODE_ENV: 'production', PORT: '4020', DATA_DIR: '/tmp/claude-0/prod-c', ...env });
 let C = nodeProd({}); await sleep(1200); ok('C1 production refuses to start without ADMIN_PASSWORD', C.exitCode === 1, C.out);
