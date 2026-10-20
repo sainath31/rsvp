@@ -68,6 +68,7 @@ h3{margin:1.4rem 0 .2rem;font:600 1.4rem 'Cormorant Garamond',serif}
   </nav>
 
   <section class="panel on" id="p-guests">
+    <div class="card" id="dbWarn" hidden style="border-color:#ff8a8a;margin-bottom:12px"><b style="color:#ff9a9a">Guest data is not being saved permanently.</b><p class="note" style="text-align:left;margin:.4rem 0 0">The database is not connected to this site yet, so RSVPs would disappear. Connect your Redis database to the Vercel project and redeploy. Open <b>/healthz</b> to see what was found.</p></div>
     <div class="stats">
       <div class="card stat"><b id="sPeople">0</b><span>Attending</span></div>
       <div class="card stat"><b id="sAdults">0</b><span>Adults</span></div>

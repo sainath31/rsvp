@@ -138,6 +138,19 @@ r = await call(eb, 'GET', '/healthz'); ok('E10 /healthz through the function', r
 r = await call(eb, 'GET', '/robots.txt'); ok('E11 robots.txt', /Disallow/.test(r.text));
 await stop(A);
 
+// database connection is found even when Vercel prefixed the variable names; warns when it is missing
+const redisBase = { VERCEL: '1', ADMIN_PASSWORD: PASS, SESSION_SECRET: SECRET, MAIL_DRY_RUN: '1', DATA_DIR: '/tmp/claude-0/ephemeral-e' };
+A = start('tests/serverless-runner.mjs', { ...redisBase, RUNNER_PORT: '4015', STORAGE_KV_REST_API_URL: 'http://localhost:4001', STORAGE_KV_REST_API_TOKEN: 'tok', STORAGE_KV_REST_API_READ_ONLY_TOKEN: 'ro' }); await waitReady(A, 4015);
+r = await call('http://localhost:4015', 'GET', '/healthz'); ok('G1 a "STORAGE_"-prefixed KV connection is detected (read-only token ignored)', r.json?.storage === 'redis' && !r.json?.warning, r.text);
+r = await call('http://localhost:4015', 'POST', '/api/rsvp', { body: { name: 'Prefix Test', status: 'no' } }); ok('G1b ...and RSVPs really land in Redis', r.status === 200 && [...upstash.hashes.get('rsvp:guests').values()].some((v) => v.includes('Prefix Test')), r.text);
+await stop(A);
+A = start('tests/serverless-runner.mjs', { ...redisBase, RUNNER_PORT: '4016', STORAGE_UPSTASH_REDIS_REST_URL: 'http://localhost:4001', STORAGE_UPSTASH_REDIS_REST_TOKEN: 'tok' }); await waitReady(A, 4016);
+r = await call('http://localhost:4016', 'GET', '/healthz'); ok('G2 a prefixed UPSTASH_REDIS_REST_* connection is detected too', r.json?.storage === 'redis', r.text); await stop(A);
+A = start('tests/serverless-runner.mjs', { ...redisBase, RUNNER_PORT: '4017', KV_REST_API_READ_ONLY_TOKEN: 'ro', REDIS_URL: 'rediss://x', KV_URL: 'rediss://y' }); await waitReady(A, 4017);
+r = await call('http://localhost:4017', 'GET', '/healthz'); ok('G3 no usable REST connection: healthz warns clearly and lists the variable NAMES found (never values)', r.json?.storage === 'file' && /NOT being saved/.test(r.json?.warning || '') && r.json?.databaseVariablesFound?.includes('REDIS_URL') && !/rediss:/.test(r.text), r.text);
+const gc = (await call('http://localhost:4017', 'POST', '/api/admin/login', { body: { password: PASS } })).res.headers.get('set-cookie').split(';')[0];
+r = await call('http://localhost:4017', 'GET', '/api/admin/event', { cookie: gc }); ok('G3b dashboard is told the data is not durable (shows a warning banner)', r.json?.durable === false, JSON.stringify([r.json?.storage, r.json?.durable])); await stop(A);
+
 const nodeProd = (env) => start('server.js', { NODE_ENV: 'production', PORT: '4020', DATA_DIR: '/tmp/claude-0/prod-c', ...env });
 let C = nodeProd({}); await sleep(1200); ok('C1 production refuses to start without ADMIN_PASSWORD', C.exitCode === 1, C.out);
 C = nodeProd({ ADMIN_PASSWORD: 'short' }); await sleep(1200); ok('C2 production refuses to start with a weak password', C.exitCode === 1 && /at least 10/.test(C.out), C.out);

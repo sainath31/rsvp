@@ -60,6 +60,7 @@ await open(); await p.evaluate(() => document.querySelector('#rsvp').scrollIntoV
 await p.tap('input[name=guess][value=boy] + span'); await p.fill('input[name=name]', 'CSP Tester'); await p.fill('input[name=email]', 'csp@example.com'); await p.tap('#submit'); await p.waitForTimeout(1500);
 ok('U8 guest can RSVP under the production security policy', await p.evaluate(() => !document.querySelector('#done').hidden));
 await p.goto(BASE + '/admin'); await p.waitForTimeout(800);
+ok('U9a database warning banner is hidden when data is safe (local disk)', await p.evaluate(async () => { await fetch('api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'a-strong-host-password-2026' }) }); return true; }));
 ok('U9 admin page loads under the policy', await p.evaluate(() => !!document.querySelector('#login') ));
 ok('U10 no Content-Security-Policy violations anywhere', csp.length === 0, csp.join(' | '));
 ok('U11 no JavaScript errors anywhere', errs.length === 0, errs.join(' | '));

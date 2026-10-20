@@ -11,7 +11,7 @@ A daily **Cron Job** sends the reminder emails.
 
 ## 2. Add storage (Project → Storage)
 - **Redis (required):** *Create Database* → **Upstash for Redis** (free plan) → connect it to this project.
-  This adds `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically.
+  This adds `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically (a custom prefix such as `STORAGE_` is also recognised).
 - **Blob (optional):** *Create Database* → **Blob** → connect. Adds `BLOB_READ_WRITE_TOKEN`.
   Without it the built-in video, picture and music are used and the dashboard upload buttons are switched off.
   With it, uploads are limited to about 4 MB each (Vercel's request limit).
@@ -31,7 +31,7 @@ A daily **Cron Job** sends the reminder emails.
 Deployments → the latest one → **⋯ → Redeploy** (environment variables only apply to new deployments).
 
 ## 5. Check it works
-- `https://YOUR-SITE/healthz` should show `"storage":"redis"`, `"email":true`, `"hostLogin":true`.
+- `https://YOUR-SITE/healthz` should show `"storage":"redis"` (if it says `file`, the database is not connected: it then also lists the variable names it found), `"email":true`, `"hostLogin":true`.
 - Open the invitation, submit a test RSVP, then sign in with the profile icon (top right) and look for it in Guests.
 - Dashboard → **Notify tab → Send test to me** sends a test email.
 - Project → Settings → **Cron Jobs** lists `/api/cron/reminders` (daily).

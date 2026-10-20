@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import multer from 'multer';
-import { getEvent, saveEvent, listGuests, putGuest, removeGuest, storageKind, UPLOAD_DIR } from './lib/store.js';
+import { getEvent, saveEvent, listGuests, putGuest, removeGuest, storageKind, dataIsDurable, redisVarNames, UPLOAD_DIR } from './lib/store.js';
 import { mediaMode, maxUploadMB, mediaUrl, saveMedia, deleteMedia } from './lib/media.js';
 import { sendMail, isMailConfigured, validEmail } from './lib/mail.js';
 import { notifyGuest, channelsConfigured } from './lib/notify.js';
@@ -41,7 +41,11 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 
 app.get(['/healthz', '/api/healthz'], wrap(async (req, res) => {
   await getEvent({ fresh: true }); // proves the storage is reachable
-  res.json({ ok: true, storage: storageKind, uploads: mediaMode, email: isMailConfigured(), hostLogin: !loginProblem, ...(loginProblem ? { hostLoginProblem: loginProblem } : {}) });
+  res.json({
+    ok: true, storage: storageKind, uploads: mediaMode, email: isMailConfigured(), hostLogin: !loginProblem,
+    ...(loginProblem ? { hostLoginProblem: loginProblem } : {}),
+    ...(!dataIsDurable ? { warning: 'The database is not connected, so RSVPs are NOT being saved permanently. Connect the Redis database to this project and redeploy.', databaseVariablesFound: redisVarNames() } : {}),
+  });
 }));
 
 /* ---------- host login (password comes from ADMIN_PASSWORD; signed cookie, no server-side session store) ---------- */
@@ -187,7 +191,7 @@ app.delete('/api/admin/upload/:kind', requireAdmin, wrap(async (req, res) => {
 /* ---------- admin: guests (host-only) ---------- */
 app.get('/api/admin/event', requireAdmin, wrap(async (req, res) => {
   const ev = await getEvent();
-  res.json({ ...ev, imageUrl: mediaUrl(ev.image), videoUrl: mediaUrl(ev.video), musicUrl: mediaUrl(ev.music), link: baseUrl(req), email: isMailConfigured(), uploads: mediaMode !== 'none', maxUploadMB: { image: maxUploadMB(10), video: maxUploadMB(25), music: maxUploadMB(25) } });
+  res.json({ ...ev, storage: storageKind, durable: dataIsDurable, imageUrl: mediaUrl(ev.image), videoUrl: mediaUrl(ev.video), musicUrl: mediaUrl(ev.music), link: baseUrl(req), email: isMailConfigured(), uploads: mediaMode !== 'none', maxUploadMB: { image: maxUploadMB(10), video: maxUploadMB(25), music: maxUploadMB(25) } });
 }));
 app.get('/api/admin/guests', requireAdmin, wrap(async (req, res) => {
   const guests = (await listGuests()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));

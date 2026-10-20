@@ -57,6 +57,7 @@ async function loadEvent() {
   const f = $('#evForm');
   for (const k of ['title', 'hosts', 'venue', 'address', 'mapUrl', 'dressCode', 'rsvpDeadline', 'message', 'durationHours']) f[k].value = ev[k] ?? '';
   f.startsAt.value = toLocal(ev.startsAt);
+  $('#dbWarn').hidden = ev.durable !== false;
   const noUp = ev.uploads === false;
   $('#uploadNote').hidden = !noUp;
   document.querySelectorAll('#evForm input[type=file]').forEach((i) => { i.disabled = noUp; i.closest('label').style.opacity = noUp ? .45 : ''; });
