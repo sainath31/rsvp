@@ -84,11 +84,15 @@ ok('A14d reminder history stored in Redis', [...upstash.hashes.get('rsvp:guests'
 await call(base, 'PUT', '/api/admin/event', { cookie: good, body: { startsAt: new Date(Date.now() - 3600e3).toISOString() } });
 r = await call(base, 'GET', '/api/cron/reminders', { headers: { Authorization: `Bearer ${CRON}` } }); ok('A14e after the party starts nothing is sent', r.json?.sent === 0 && /already started/.test(r.json?.note || ''), r.text);
 
-r = await call(base, 'GET', '/api/event'); const h = r.res.headers;
+r = await call(base, 'GET', '/api/admin/guests'); const h = r.res.headers;
 ok('A15 security headers on API responses', /default-src 'self'/.test(h.get('content-security-policy') || '') && h.get('x-frame-options') === 'DENY' && h.get('x-content-type-options') === 'nosniff' && /no-store/.test(h.get('cache-control') || ''), JSON.stringify([...h.entries()].slice(0, 8)));
 ok('A15b no HSTS over plain http', !h.get('strict-transport-security'));
 r = await call(base, 'GET', '/api/event', { headers: { 'X-Forwarded-Proto': 'https' } }); ok('A15c HSTS when served over https', /max-age=\d+/.test(r.res.headers.get('strict-transport-security') || ''));
 r = await call(base, 'POST', '/api/admin/login', { body: { password: PASS }, headers: { 'X-Forwarded-Proto': 'https' } }); ok('A15d session cookie is Secure over https', /; Secure/.test(r.res.headers.get('set-cookie') || ''));
+r = await call(base, 'GET', '/api/event'); ok('A15e public event may be cached at the edge for 30s (fewer database calls)', /s-maxage=30/.test(r.res.headers.get('cache-control') || ''), r.res.headers.get('cache-control'));
+{ const n0 = upstash.log.length; for (let i = 0; i < 12; i++) await call(base, 'GET', '/api/event'); const used = upstash.log.length - n0;
+  ok('A15f 12 page loads cost at most 1 Redis command (cached per instance)', used <= 1, String(used));
+  await call(base, 'PUT', '/api/admin/event', { cookie: good, body: { title: 'Cache Check' } }); r = await call(base, 'GET', '/api/event'); ok('A15g an edit shows up immediately on the same instance (cache cleared on save)', r.json?.title === 'Cache Check', r.text.slice(0, 80)); }
 r = await call(base, 'GET', '/api/nope'); ok('A16 unknown API route is a clean 404 JSON', r.status === 404 && r.json?.error === 'Not found');
 r = await call(base, 'GET', '/api/admin/event', { cookie: good }); ok('A17 admin sees upload availability + size caps', r.json?.uploads === true && r.json?.maxUploadMB?.music === 4, JSON.stringify([r.json?.uploads, r.json?.maxUploadMB]));
 

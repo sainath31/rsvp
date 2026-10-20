@@ -38,7 +38,7 @@ const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ')
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 app.get(['/healthz', '/api/healthz'], wrap(async (req, res) => {
-  await getEvent(); // proves the storage is reachable
+  await getEvent({ fresh: true }); // proves the storage is reachable
   res.json({ ok: true, storage: storageKind, uploads: mediaMode, email: isMailConfigured(), hostLogin: !loginProblem });
 }));
 
@@ -73,7 +73,11 @@ const publicEvent = (ev) => ({
   durationHours: ev.durationHours, rsvpDeadline: ev.rsvpDeadline,
   image: mediaUrl(ev.image), video: mediaUrl(ev.video), music: mediaUrl(ev.music),
 });
-app.get('/api/event', wrap(async (req, res) => res.json(publicEvent(await getEvent()))));
+app.get('/api/event', wrap(async (req, res) => {
+  // Guests only read this. Let Vercel's edge cache it for 30s so a busy day costs almost no database calls.
+  res.set('Cache-Control', 'public, max-age=0, s-maxage=30, stale-while-revalidate=120');
+  res.json(publicEvent(await getEvent()));
+}));
 
 const rsvpHits = new Map();
 app.post('/api/rsvp', wrap(async (req, res) => {
