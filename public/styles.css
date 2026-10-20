@@ -69,6 +69,9 @@ body.entrance .bg{opacity:0}
 .message{margin:0 0 1.3rem;font:italic 500 1.2rem/1.5 'Cormorant Garamond',Georgia,serif;color:#f0eadb;white-space:pre-line;text-align:center}
 .details{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 .details li{display:flex;gap:14px;align-items:flex-start}
+.details .ico.date-ico{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1;font-style:normal;padding-top:1px}
+.date-ico i{font-style:normal;font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.date-ico b{font:600 1.05rem/1 Inter,system-ui,sans-serif;color:var(--gold2);display:block}
 .details .ico{width:42px;height:42px;flex:none;border-radius:14px;display:grid;place-items:center;background:rgba(217,181,115,.12);border:1px solid rgba(217,181,115,.3)}
 .details b{display:block;font-weight:600;font-size:.98rem}
 .maplink{display:block;width:fit-content;margin-top:.4rem;color:var(--gold2);font-size:.84rem;text-decoration:underline;text-underline-offset:3px}

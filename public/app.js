@@ -91,6 +91,8 @@ function render() {
   $('#hosts').textContent = ev.hosts;
   $('#message').textContent = ev.message;
   $('#heroDate').textContent = fmt({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+  $('#dMon').textContent = fmt({ month: 'short' });
+  $('#dDay').textContent = fmt({ day: 'numeric' });
   $('#dDate').textContent = fmt({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   $('#dTime').textContent = fmt({ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
   $('#dVenue').textContent = ev.venue;
