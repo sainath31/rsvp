@@ -227,7 +227,10 @@ const sendIndex = (req, res) => {
 };
 app.get(['/', '/index.html'], sendIndex);
 app.get('/admin', (req, res) => res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, 'public/admin.html')));
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '5m', extensions: ['html'] }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '5m', extensions: ['html'],
+  setHeaders: (res, file) => { if (!/\.html$/.test(file)) res.set('Cache-Control', 'public, max-age=300, s-maxage=3600'); },
+}));
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) return res.status(400).json({ error: err.message });

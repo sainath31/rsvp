@@ -121,12 +121,21 @@ r = await call('http://localhost:4013', 'GET', '/api/admin/guests', { cookie: ck
 await stop(A);
 
 // the real Vercel entry file serves the API (body parsing, cookies, JSON)
-A = start('tests/vercel-handler-runner.mjs', { VERCEL: '1', RUNNER_PORT: '4014', ADMIN_PASSWORD: PASS, SESSION_SECRET: SECRET, DATA_DIR: '/tmp/claude-0/ephemeral-d' }); ok('E0 api/[...path].js entry boots', await waitReady(A, 4014), A.out);
+A = start('tests/vercel-handler-runner.mjs', { VERCEL: '1', RUNNER_PORT: '4014', ADMIN_PASSWORD: PASS, SESSION_SECRET: SECRET, DATA_DIR: '/tmp/claude-0/ephemeral-d' }); ok('E0 api/index.js entry boots', await waitReady(A, 4014), A.out);
 r = await call('http://localhost:4014', 'GET', '/api/healthz'); ok('E1 entry file serves /api/healthz', r.status === 200 && r.json?.ok === true, r.text);
 r = await call('http://localhost:4014', 'POST', '/api/admin/login', { body: { password: 'nope' } }); ok('E2 wrong password through the entry file -> clean JSON 401 "Wrong password"', r.status === 401 && r.json?.error === 'Wrong password', r.text);
 r = await call('http://localhost:4014', 'POST', '/api/admin/login', { body: { password: PASS } }); ok('E3 right password through the entry file -> 200 + cookie', r.status === 200 && /sid=/.test(r.res.headers.get('set-cookie') || ''), r.text);
 r = await call('http://localhost:4014', 'POST', '/api/rsvp', { body: { name: 'Entry Test', status: 'no' } }); ok('E4 JSON body parsing works through the entry file (RSVP)', r.status === 200 && r.json?.ok, r.text);
 r = await call('http://localhost:4014', 'POST', '/api/admin/login', { raw: '{"password": ', headers: { 'Content-Type': 'application/json' } }); ok('E5 malformed JSON gets a JSON error, not a crash', r.status >= 400 && r.status < 600 && !!r.json?.error, r.status + ' ' + r.text.slice(0, 80));
+const eb = 'http://localhost:4014';
+r = await call(eb, 'GET', '/'); ok('E6 home page served through the function with link-preview tags filled in', r.status === 200 && /og:image" content="http:\/\/localhost:4014\/og\.jpg"/.test(r.text) && /A Sweet Surprise/.test(r.text) && /noindex/.test(r.text), r.text.slice(0, 80));
+r = await call(eb, 'GET', '/admin'); ok('E7 /admin page served', r.status === 200 && /Host login/.test(r.text));
+for (const f of ['/styles.css', '/app.js', '/fonts/great-vibes-latin-400-normal.woff2', '/hero-v2.mp4', '/hero-start.jpg', '/gate-gold-idle.mp4', '/og.jpg']) { r = await call(eb, 'GET', f, { headers: /mp4/.test(f) ? { Range: 'bytes=0-99' } : {} }); ok(`E8 ${f} served by the function`, r.status === (/mp4/.test(f) ? 206 : 200), r.status + ' ' + r.res.headers.get('content-type')); }
+r = await call(eb, 'GET', '/hero-v2.mp4', { headers: { Range: 'bytes=0-99' } }); ok('E8b video supports range requests (iPhone needs this)', r.status === 206 && /bytes 0-99\//.test(r.res.headers.get('content-range') || ''), r.res.headers.get('content-range'));
+r = await call(eb, 'GET', '/hero-v2.mp4'); ok('E8c assets can be cached at the edge', /s-maxage/.test(r.res.headers.get('cache-control') || ''), r.res.headers.get('cache-control'));
+r = await call(eb, 'GET', '/event.ics'); ok('E9 /event.ics through the function', r.status === 200 && r.text.startsWith('BEGIN:VCALENDAR'));
+r = await call(eb, 'GET', '/healthz'); ok('E10 /healthz through the function', r.json?.ok === true);
+r = await call(eb, 'GET', '/robots.txt'); ok('E11 robots.txt', /Disallow/.test(r.text));
 await stop(A);
 
 const nodeProd = (env) => start('server.js', { NODE_ENV: 'production', PORT: '4020', DATA_DIR: '/tmp/claude-0/prod-c', ...env });
@@ -139,12 +148,12 @@ r = await call('http://localhost:4020', 'GET', '/robots.txt'); ok('C4c robots.tx
 r = await call('http://localhost:4020', 'GET', '/og.jpg'); ok('C4d link-preview image exists', r.status === 200 && /image\/jpeg/.test(r.res.headers.get('content-type')));
 await stop(C);
 
-const vj = JSON.parse(fs.readFileSync('vercel.json', 'utf8')); const { CSP } = await import('../lib/security.js');
-ok('D1 vercel.json CSP matches the server CSP', vj.headers[0].headers.find((x) => x.key === 'Content-Security-Policy')?.value === CSP);
-ok('D2 vercel.json cron path matches the route', vj.crons[0].path === '/api/cron/reminders');
-ok('D3 vercel.json is valid and serves public/ with admin/event/healthz rewrites', vj.outputDirectory === 'public' && ['/admin', '/event.ics', '/healthz'].every((s) => vj.rewrites.some((x) => x.source === s)));
-ok('D3b vercel.json forces the plain "Other" preset (Vercel would otherwise auto-detect Express and look for a single entry file)', vj.framework === null);
-ok('D4 Vercel entry file exists, loads the app and reports startup failures as JSON', /import\('\.\.\/server\.js'\)/.test(fs.readFileSync('api/[...path].js', 'utf8')) && /failed to start/.test(fs.readFileSync('api/[...path].js', 'utf8')));
+const vj = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+ok('D1 vercel.json: one explicit Node function (api/index.js) with the files it needs bundled', vj.builds?.length === 1 && vj.builds[0].src === 'api/index.js' && vj.builds[0].use === '@vercel/node' && ['server.js', 'lib/**', 'public/**'].every((f) => vj.builds[0].config.includeFiles.includes(f)));
+ok('D2 vercel.json: cron path matches the route, and every request goes to the function', vj.crons[0].path === '/api/cron/reminders' && vj.routes?.[0]?.src === '/(.*)' && vj.routes[0].dest === '/api/index.js');
+ok('D3 no framework auto-detection can interfere (explicit builds, no [...] filename routing, no leftover entry)', !fs.existsSync('api/[...path].js') && fs.existsSync('api/index.js') && !('rewrites' in vj) && !('outputDirectory' in vj));
+ok('D4 Vercel entry file loads the app and reports startup failures as JSON', /import\('\.\.\/server\.js'\)/.test(fs.readFileSync('api/index.js', 'utf8')) && /failed to start/.test(fs.readFileSync('api/index.js', 'utf8')));
+ok('D4b every public file is under Vercel\'s 4.5 MB function-response limit', fs.readdirSync('public', { recursive: true }).filter((f) => !/hero-smoke/.test(f)).every((f) => { try { const s = fs.statSync('public/' + f); return !s.isFile() || s.size < 4.5 * 1024 * 1024; } catch { return true; } }));
 const pj = JSON.parse(fs.readFileSync('package.json', 'utf8')); ok('D5 package.json pins Node 22 and has no WhatsApp leftovers', pj.engines.node === '22.x' && !/whatsapp/i.test(JSON.stringify(pj)));
 fs.copyFileSync('public/index.html', '/tmp/claude-0/index.backup.html');
 await new Promise((res) => { const p = spawn('node', ['scripts/prepare.mjs'], { env: { ...process.env, CI: '', VERCEL: '', SITE_URL: '', PUBLIC_URL: '' } }); p.on('exit', res); });

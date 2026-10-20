@@ -1,12 +1,12 @@
 # Deploying to Vercel (free Hobby plan)
 
-The app runs on Vercel as a static site plus one serverless function (`api/[...path].js`).
+The app runs on Vercel as one serverless function (`api/index.js`) that serves the pages, the API and the media.
 Because Vercel has no permanent disk, guest data lives in **Upstash Redis** and optional uploads in **Vercel Blob**.
 A daily **Cron Job** sends the reminder emails.
 
 ## 1. Import the project
 1. vercel.com → **Add New… → Project** → import the GitHub repo `sainath31/rsvp`.
-2. **Framework Preset: Other.** Leave every build setting alone (`vercel.json` already sets them). Click **Deploy**.
+2. Leave the framework and build settings alone (`vercel.json` sets everything; Vercel will note that project settings are ignored - that is expected). Click **Deploy**.
    (Do not share the link yet - storage and the host password are not set up.)
 
 ## 2. Add storage (Project → Storage)

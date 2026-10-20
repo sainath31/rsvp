@@ -1,6 +1,8 @@
 tests/
 data/
 .github/
-scripts/gen-ics.mjs
+scripts/
 README.md
 DEPLOY.md
+public/hero-smoke*
+public/event.ics
