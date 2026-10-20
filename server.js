@@ -96,6 +96,7 @@ app.post('/api/rsvp', async (req, res) => {
   const guess = status === 'no' ? '' : ['boy', 'girl'].includes(b.guess) ? b.guess : '';
 
   const email = clean(b.email, 120).toLowerCase();
+  if (!email && status !== 'no') return res.status(400).json({ error: 'Please enter your email so we can send your confirmation and a reminder.' });
   if (email && !validEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
 
   const db = getDb();

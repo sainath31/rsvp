@@ -12,7 +12,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preload" href="fonts/great-vibes-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=34">
+<link rel="stylesheet" href="styles.css?v=35">
 </head>
 <body class="entrance">
 <div class="bg" aria-hidden="true"></div>
@@ -87,7 +87,7 @@
           <div class="field"><span>Children</span><div class="stepper" data-for="children"><button type="button" aria-label="Fewer children">&minus;</button><output id="childrenOut">0</output><button type="button" aria-label="More children">+</button></div></div>
         </div>
 
-        <label class="field"><span>Email <em>(for confirmation &amp; reminders)</em></span>
+        <label class="field"><span id="emailLabel">Email <em>(we'll send your confirmation and a reminder)</em></span>
           <input name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" maxlength="120"></label>
         <label class="field"><span>Message to the hosts <em>(optional)</em></span>
           <textarea name="note" rows="2" maxlength="300" placeholder="Dietary needs, wishes&hellip;"></textarea></label>
@@ -104,14 +104,14 @@
       </div>
     </section>
 
-    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v34 &middot; Oct 31</small></footer>
+    <footer class="foot"><a href="admin.html">Host login</a> &middot; <small style="color:var(--muted)">build v35 &middot; Oct 31</small></footer>
   </div>
 </main>
 
 <button id="rsvpFab" class="fab" hidden>RSVP now</button>
 <button id="mute" class="mute" aria-label="Toggle music" hidden>&#9835;</button>
 <audio id="audio" loop preload="none" playsinline></audio>
-<script src="demo.js?v=34"></script>
-<script src="app.js?v=34"></script>
+<script src="demo.js?v=35"></script>
+<script src="app.js?v=35"></script>
 </body>
 </html>

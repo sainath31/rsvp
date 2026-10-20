@@ -111,7 +111,12 @@ document.querySelectorAll('.stepper').forEach((el) => {
   minus.onclick = () => set(counts[key] - 1);
   plus.onclick = () => set(counts[key] + 1);
 });
-form.addEventListener('change', () => { const no = form.status.value === 'no'; $('#counts').hidden = no; $('#guessBox').hidden = no; });
+const EMAIL_NEEDED = "Email <em>(we'll send your confirmation and a reminder)</em>", EMAIL_OPTIONAL = 'Email <em>(optional)</em>';
+form.addEventListener('change', () => {
+  const no = form.status.value === 'no';
+  $('#counts').hidden = no; $('#guessBox').hidden = no;
+  $('#emailLabel').innerHTML = no ? EMAIL_OPTIONAL : EMAIL_NEEDED; // email is only required for accept / maybe
+});
 
 try { const s = JSON.parse(localStorage.getItem('rsvp') || 'null'); if (s) { form.name.value = s.name || ''; form.email.value = s.email || ''; } } catch {}
 
@@ -120,6 +125,7 @@ form.addEventListener('submit', async (e) => {
   const err = $('#err'), btn = $('#submit');
   err.hidden = true;
   if (!form.name.value.trim()) { err.textContent = 'Please enter your name.'; err.hidden = false; form.name.focus(); return; }
+  if (form.status.value !== 'no' && !form.email.value.trim()) { err.textContent = 'Please enter your email so we can send your confirmation and a reminder.'; err.hidden = false; form.email.focus(); return; }
   const body = { name: form.name.value, email: form.email.value, note: form.note.value, status: form.status.value, guess: form.guess.value, adults: counts.adults, children: counts.children };
   btn.disabled = true; btn.textContent = 'Sending…';
   try {

@@ -19,6 +19,7 @@
     if (url === 'api/event') return json({ ...e });
     if (url === 'api/rsvp') {
       if (!body.name?.trim()) return json({ error: 'Please enter your name.' }, 400);
+      if (body.status !== 'no' && !body.email?.trim()) return json({ error: 'Please enter your email so we can send your confirmation and a reminder.' }, 400);
       const no = body.status === 'no';
       const g = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), name: body.name.trim(), email: body.email || '', guess: no ? '' : body.guess || '', status: body.status, adults: no ? 0 : Math.max(1, body.adults | 0), children: no ? 0 : body.children | 0, note: body.note || '' };
       db.guests.unshift(g); save();
