@@ -48,7 +48,7 @@ body.entrance .bg{opacity:0}
 .hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,16,32,0) 0,rgba(13,16,32,.05) 45%,rgba(13,16,32,.94) 100%)}
 .hero-text{position:absolute;left:0;right:0;bottom:0;padding:24px 20px 30px;text-align:center}
 .hero-text .eyebrow{letter-spacing:.17em;font-size:.62rem;margin:0 0 .35rem;color:var(--gold2);text-shadow:0 1px 10px rgba(0,0,0,.7);animation:rise 1s 1.3s ease both}
-.hero-text .script{font-size:clamp(2.4rem,12.4vw,3.5rem);padding:0 .1em;white-space:nowrap;background:linear-gradient(100deg,#c79f55 0%,#f6e3ae 30%,#fffaf0 50%,#f6e3ae 70%,#c79f55 100%);background-size:240% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 14px rgba(0,0,0,.65));animation:rise 1.1s 1.6s ease both,shine 4.5s 3s ease-in-out 2}
+.hero-text .script{font-size:clamp(2.4rem,12.4vw,3.5rem);line-height:1.3;padding:.22em .18em .18em;margin:-.22em 0 -.12em;white-space:nowrap;background:linear-gradient(100deg,#c79f55 0%,#f6e3ae 30%,#fffaf0 50%,#f6e3ae 70%,#c79f55 100%);background-size:240% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 14px rgba(0,0,0,.65));animation:rise 1.1s 1.6s ease both,shine 4.5s 3s ease-in-out 2}
 .hero-date{margin:.7rem 0 0;color:var(--gold2);letter-spacing:.16em;font-size:.74rem;font-weight:500;text-transform:uppercase;text-shadow:0 1px 10px rgba(0,0,0,.7);animation:rise 1s 2s ease both}
 @keyframes shine{0%{background-position:100% 0}60%,100%{background-position:-40% 0}}
 .sparkles{position:absolute;inset:0;pointer-events:none}
